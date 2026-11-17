@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { CompanyRecord } from '../types';
 import { formatCurrencyUSD, formatNumber, buildLinkedInXrayUrl } from '../utils';
+import { browserDb } from '../browserEngine';
 
 interface CompanyDrawerProps {
   companyId: number | null;
@@ -71,12 +72,21 @@ export const CompanyDrawer: React.FC<CompanyDrawerProps> = ({
         const res = await fetch(`/api/companies/${companyId}`, {
           headers: { 'X-App-Password': password },
         });
-        if (res.ok && !cancelled) {
+        if (
+          res.ok &&
+          (res.headers.get('content-type') || '').includes('application/json') &&
+          !cancelled
+        ) {
           const fullData = await res.json();
           setCompany(fullData);
+          return;
         }
+        throw new Error('Static mode');
       } catch {
-        // Keep initialCompany fallback
+        if (!cancelled) {
+          const localDetail = browserDb.getCompanyDetail(companyId);
+          if (localDetail) setCompany(localDetail);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }

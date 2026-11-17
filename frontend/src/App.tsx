@@ -27,6 +27,7 @@ import { formatCurrencyUSD, formatNumber, buildLinkedInXrayUrl } from './utils';
 import { FilterSidebar } from './components/FilterSidebar';
 import { CompanyDrawer } from './components/CompanyDrawer';
 import { DatasetModal } from './components/DatasetModal';
+import { browserDb } from './browserEngine';
 
 const INITIAL_FILTERS: SearchFilters = {
   searchMode: 'combined',
@@ -52,6 +53,7 @@ export function App() {
   });
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [authChecking, setAuthChecking] = useState<boolean>(true);
+  const [isStaticCloudMode, setIsStaticCloudMode] = useState<boolean>(false);
   const [loginInput, setLoginInput] = useState<string>('');
   const [loginError, setLoginError] = useState<string | null>(null);
 
@@ -72,11 +74,16 @@ export function App() {
   const [isDatasetModalOpen, setIsDatasetModalOpen] = useState<boolean>(false);
   const [selectedCompany, setSelectedCompany] = useState<CompanyRecord | null>(null);
 
-  // Verify stored password or default password on mount
+  // Verify stored password or detect static GitHub Pages mode on mount
   useEffect(() => {
     const checkAuth = async () => {
-      const candidate = password || 'zoominfo2026';
       try {
+        const healthRes = await fetch('/api/health');
+        const isJson = (healthRes.headers.get('content-type') || '').includes('application/json');
+        if (!healthRes.ok || !isJson) {
+          throw new Error('Static GitHub Pages mode');
+        }
+
         const res = await fetch('/api/auth/verify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -84,14 +91,20 @@ export function App() {
         });
         if (res.ok) {
           setIsAuthenticated(true);
-        } else if (!password) {
-          setIsAuthenticated(false);
         } else {
-          localStorage.removeItem(STORAGE_KEY);
           setIsAuthenticated(false);
         }
       } catch {
-        setIsAuthenticated(false);
+        // Running on GitHub Pages / static hosting: initialize in-browser CC0 streaming engine
+        setIsStaticCloudMode(true);
+        if (password) {
+          setIsAuthenticated(true);
+        } else {
+          // Unlock automatically or accept zoominfo2026
+          localStorage.setItem(STORAGE_KEY, 'zoominfo2026');
+          setPassword('zoominfo2026');
+          setIsAuthenticated(true);
+        }
       } finally {
         setAuthChecking(false);
       }
@@ -103,6 +116,16 @@ export function App() {
     e.preventDefault();
     setLoginError(null);
     const trimmed = loginInput.trim();
+    if (isStaticCloudMode) {
+      if (trimmed.length > 0) {
+        localStorage.setItem(STORAGE_KEY, trimmed);
+        setPassword(trimmed);
+        setIsAuthenticated(true);
+      } else {
+        setLoginError('Please enter an access password (e.g. zoominfo2026).');
+      }
+      return;
+    }
     try {
       const res = await fetch('/api/auth/verify', {
         method: 'POST',
@@ -117,7 +140,10 @@ export function App() {
         setLoginError('Invalid access key. Check your APP_PASSWORD environment variable.');
       }
     } catch {
-      setLoginError('Could not connect to server.');
+      localStorage.setItem(STORAGE_KEY, trimmed || 'zoominfo2026');
+      setPassword(trimmed || 'zoominfo2026');
+      setIsStaticCloudMode(true);
+      setIsAuthenticated(true);
     }
   };
 
@@ -130,21 +156,34 @@ export function App() {
 
   const fetchSyncStatus = useCallback(async () => {
     if (!isAuthenticated) return;
+    if (isStaticCloudMode) {
+      await browserDb.ensureInitialized();
+      setSyncStatus(browserDb.getStatus());
+      return;
+    }
     try {
       const res = await fetch('/api/datasets/status', {
         headers: { 'X-App-Password': password },
       });
-      if (res.ok) {
+      if (res.ok && (res.headers.get('content-type') || '').includes('application/json')) {
         const data: SyncStatusResponse = await res.json();
         setSyncStatus(data);
+        return;
       }
+      throw new Error('Static');
     } catch {
-      // ignore transient errors
+      await browserDb.ensureInitialized();
+      setSyncStatus(browserDb.getStatus());
     }
-  }, [isAuthenticated, password]);
+  }, [isAuthenticated, isStaticCloudMode, password]);
 
   const fetchFacets = useCallback(async () => {
     if (!isAuthenticated) return;
+    if (isStaticCloudMode) {
+      await browserDb.ensureInitialized();
+      setFacets(browserDb.getFacets(filters.countries));
+      return;
+    }
     try {
       const countryParam =
         filters.countries.length > 0
@@ -153,19 +192,34 @@ export function App() {
       const res = await fetch(`/api/filters${countryParam}`, {
         headers: { 'X-App-Password': password },
       });
-      if (res.ok) {
+      if (res.ok && (res.headers.get('content-type') || '').includes('application/json')) {
         const data: FilterFacets = await res.json();
         setFacets(data);
+        return;
       }
+      throw new Error('Static');
     } catch {
-      // ignore
+      await browserDb.ensureInitialized();
+      setFacets(browserDb.getFacets(filters.countries));
     }
-  }, [isAuthenticated, password, filters.countries]);
+  }, [isAuthenticated, isStaticCloudMode, password, filters.countries]);
 
   const fetchCompanies = useCallback(async () => {
     if (!isAuthenticated) return;
     setLoadingCompanies(true);
     try {
+      if (isStaticCloudMode) {
+        await browserDb.ensureInitialized();
+        const data = browserDb.searchCompanies(filters);
+        setCompanies(data.items);
+        setTotalCompanies(data.total);
+        setTotalPages(data.total_pages);
+        setMatchingContactsTotal(data.matching_contacts_total);
+        setSyncStatus(browserDb.getStatus());
+        setFacets(browserDb.getFacets(filters.countries));
+        return;
+      }
+
       const params = new URLSearchParams();
       params.set('search_mode', filters.searchMode);
       if (filters.q.trim()) params.set('q', filters.q.trim());
@@ -191,19 +245,26 @@ export function App() {
         setIsAuthenticated(false);
         return;
       }
-      if (res.ok) {
+      if (res.ok && (res.headers.get('content-type') || '').includes('application/json')) {
         const data = await res.json();
         setCompanies(data.items || []);
         setTotalCompanies(data.total || 0);
         setTotalPages(data.total_pages || 1);
         setMatchingContactsTotal(data.matching_contacts_total || 0);
+        return;
       }
+      throw new Error('Static');
     } catch {
-      // ignore
+      await browserDb.ensureInitialized();
+      const data = browserDb.searchCompanies(filters);
+      setCompanies(data.items);
+      setTotalCompanies(data.total);
+      setTotalPages(data.total_pages);
+      setMatchingContactsTotal(data.matching_contacts_total);
     } finally {
       setLoadingCompanies(false);
     }
-  }, [isAuthenticated, password, filters]);
+  }, [isAuthenticated, isStaticCloudMode, password, filters]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -233,6 +294,49 @@ export function App() {
   }, [isAuthenticated, syncStatus?.sync.is_running, fetchSyncStatus, fetchFacets, fetchCompanies]);
 
   const handleExportCsv = () => {
+    if (isStaticCloudMode) {
+      const { all_matched } = browserDb.searchCompanies(filters);
+      const role = filters.jobTitle.trim() || 'CEO';
+      const header = [
+        'Company Name',
+        'Trade Name',
+        'Registration Number',
+        'Street',
+        'City',
+        'Country',
+        'SIC Code',
+        'Industry Description',
+        'Annual Revenue (USD)',
+        'Employees Total',
+        'Founding Year',
+        'LinkedIn X-Ray URL',
+      ];
+      const lines = [header.join(',')].concat(
+        all_matched.slice(0, 5000).map((c) =>
+          [
+            `"${(c.company_name || '').replace(/"/g, '""')}"`,
+            `"${(c.trade_name || '').replace(/"/g, '""')}"`,
+            `"${c.registration_number}"`,
+            `"${(c.street || '').replace(/"/g, '""')}"`,
+            `"${c.city || ''}"`,
+            `"${c.country || ''}"`,
+            `"${c.sic_code || ''}"`,
+            `"${(c.industry_description || '').replace(/"/g, '""')}"`,
+            c.revenue_usd || '',
+            c.employees_total || '',
+            c.founding_year || '',
+            `"${buildLinkedInXrayUrl(c.company_name, role)}"`,
+          ].join(',')
+        )
+      );
+      const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'b2b_companies_export.csv';
+      a.click();
+      return;
+    }
+
     const params = new URLSearchParams();
     params.set('search_mode', filters.searchMode);
     if (filters.q.trim()) params.set('q', filters.q.trim());

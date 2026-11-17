@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { DatasetItem, SyncStatusResponse } from '../types';
 import { formatNumber } from '../utils';
+import { browserDb } from '../browserEngine';
 
 interface DatasetModalProps {
   isOpen: boolean;
@@ -51,15 +52,22 @@ export const DatasetModal: React.FC<DatasetModalProps> = ({
       const res = await fetch(`/api/datasets/available${force ? '?refresh=true' : ''}`, {
         headers: { 'X-App-Password': password },
       });
-      if (!res.ok) throw new Error('Failed to load dataset list');
+      if (!res.ok || !(res.headers.get('content-type') || '').includes('application/json')) {
+        throw new Error('Static mode');
+      }
       const data = await res.json();
       setDatasets(data.datasets || []);
       if (selectedIds.length === 0 && data.datasets) {
         const unsynced = data.datasets.filter((d: DatasetItem) => !d.is_synced).map((d: DatasetItem) => d.id);
         setSelectedIds(unsynced.length > 0 ? unsynced : data.datasets.map((d: DatasetItem) => d.id));
       }
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Could not fetch GitHub datasets');
+    } catch {
+      const avail = browserDb.getAvailableDatasets();
+      setDatasets(avail);
+      if (selectedIds.length === 0) {
+        const unsynced = avail.filter((d) => !d.is_synced).map((d) => d.id);
+        setSelectedIds(unsynced.length > 0 ? unsynced : avail.map((d) => d.id));
+      }
     } finally {
       setLoadingList(false);
     }
@@ -106,10 +114,14 @@ export const DatasetModal: React.FC<DatasetModalProps> = ({
         },
         body: JSON.stringify({ datasets: selectedIds }),
       });
-      if (!res.ok) throw new Error('Failed to start dataset sync');
+      if (!res.ok || !(res.headers.get('content-type') || '').includes('application/json')) {
+        throw new Error('Static mode');
+      }
       onRefreshStatus();
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Error starting sync');
+    } catch {
+      await browserDb.syncDatasets(selectedIds);
+      fetchAvailable(false);
+      onRefreshStatus();
     } finally {
       setTriggeringSync(false);
     }
@@ -131,14 +143,20 @@ export const DatasetModal: React.FC<DatasetModalProps> = ({
         headers: { 'X-App-Password': password },
         body: formData,
       });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.detail || 'Failed to upload contacts CSV');
+      if (!res.ok || !(res.headers.get('content-type') || '').includes('application/json')) {
+        throw new Error('Static mode');
       }
+      const data = await res.json();
       setUploadResult(data);
       onRefreshStatus();
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Contact CSV upload error');
+    } catch {
+      try {
+        const res = await browserDb.uploadContactsCsv(file);
+        setUploadResult(res);
+        onRefreshStatus();
+      } catch (err: any) {
+        setErrorMsg(err.message || 'Contact CSV upload error');
+      }
     } finally {
       setUploadingCsv(false);
       if (fileInputRef.current) fileInputRef.current.value = '';

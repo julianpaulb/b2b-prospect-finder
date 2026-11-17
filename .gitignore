@@ -11,6 +11,7 @@
 .wget-hsts
 b2b-prospect-finder.zip
 b2b-prospect-finder.bundle
+Screenshot_*.png
 
 # Python
 __pycache__/
