@@ -62,7 +62,7 @@ export const DatasetModal: React.FC<DatasetModalProps> = ({
         setSelectedIds(unsynced.length > 0 ? unsynced : data.datasets.map((d: DatasetItem) => d.id));
       }
     } catch {
-      const avail = browserDb.getAvailableDatasets();
+      const avail = await browserDb.discoverFromGitHubApi(force);
       setDatasets(avail);
       if (selectedIds.length === 0) {
         const unsynced = avail.filter((d) => !d.is_synced).map((d) => d.id);

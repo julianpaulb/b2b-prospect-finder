@@ -68,10 +68,11 @@ def on_startup():
         if AUTO_SYNC_STARTER:
             status = get_sync_status()
             if status.get("total_companies", 0) == 0 and not status["sync"]["is_running"]:
-                logger.info("Database is empty on startup; launching background starter sync (amsterdam, new-york-city, paris, london)...")
+                all_ids = [d["id"] for d in discover_available_datasets()]
+                logger.info(f"Database is empty on startup; launching background sync for all {len(all_ids)} datasets...")
                 threading.Thread(
                     target=stream_and_sync_datasets,
-                    args=(["amsterdam", "new-york-city", "paris", "london"],),
+                    args=(all_ids,),
                     daemon=True,
                 ).start()
     except Exception as exc:

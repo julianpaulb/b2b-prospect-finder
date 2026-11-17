@@ -172,6 +172,7 @@ class BrowserDatabaseEngine {
   private companiesById: Map<number, CompanyRecord> = new Map();
   private contacts: ContactRecord[] = [];
   private sourceCounts: Map<string, { count: number; updated_at: string }> = new Map();
+  private discoveredDatasets: DatasetItem[] = [...GITHUB_DATASETS];
   private nextCompanyId = 1;
   private nextContactId = 1;
   private initialized = false;
@@ -188,14 +189,64 @@ class BrowserDatabaseEngine {
     if (this.logs.length > 30) this.logs.shift();
   }
 
+  async discoverFromGitHubApi(force = false): Promise<DatasetItem[]> {
+    try {
+      const res = await fetch(
+        'https://api.github.com/repos/companydatacom/public-datasets/git/trees/main?recursive=1',
+        { headers: { Accept: 'application/vnd.github.v3+json' } }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const found: DatasetItem[] = [];
+        for (const node of data.tree || []) {
+          if (node.type === 'blob' && typeof node.path === 'string' && node.path.endsWith('.csv')) {
+            const parts = node.path.split('/');
+            if (parts.length >= 2 && parts[0] === 'datasets') {
+              const folder = parts[1];
+              const preset = GITHUB_DATASETS.find((d) => d.id === folder);
+              const prettyName =
+                preset?.name ||
+                folder
+                  .split('-')
+                  .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+                  .join(' ');
+              const country = preset?.country || 'Global';
+              const syncInfo = this.sourceCounts.get(folder);
+              found.push({
+                id: folder,
+                name: prettyName,
+                country,
+                path: node.path,
+                download_url: `${RAW_BASE_URL}${node.path}`,
+                size_bytes: node.size || 540000,
+                estimated_rows: 1000,
+                loaded_rows: syncInfo?.count || 0,
+                last_synced: syncInfo?.updated_at || null,
+                is_synced: (syncInfo?.count || 0) > 0,
+              });
+            }
+          }
+        }
+        if (found.length > 0) {
+          this.discoveredDatasets = found;
+          this.log(`Discovered ${found.length} live CSV datasets from GitHub API.`);
+        }
+      }
+    } catch {
+      // Fallback to GITHUB_DATASETS if GitHub API rate-limits anonymous browser requests
+    }
+    return this.getAvailableDatasets();
+  }
+
   async ensureInitialized(): Promise<void> {
     if (this.initialized) return;
     this.initialized = true;
-    await this.syncDatasets(['amsterdam', 'new-york-city', 'paris', 'london']);
+    const avail = await this.discoverFromGitHubApi();
+    await this.syncDatasets(avail.map((d) => d.id));
   }
 
   getAvailableDatasets(): DatasetItem[] {
-    return GITHUB_DATASETS.map((d) => {
+    return this.discoveredDatasets.map((d) => {
       const info = this.sourceCounts.get(d.id);
       return {
         ...d,
@@ -241,7 +292,7 @@ class BrowserDatabaseEngine {
 
     try {
       for (const dsId of datasetIds) {
-        const meta = GITHUB_DATASETS.find((d) => d.id === dsId);
+        const meta = this.discoveredDatasets.find((d) => d.id === dsId) || GITHUB_DATASETS.find((d) => d.id === dsId);
         if (!meta) continue;
         this.currentFile = meta.name;
         this.log(`Streaming ${meta.name} (${meta.country}) from raw.githubusercontent.com...`);
