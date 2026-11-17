@@ -66,6 +66,7 @@ export function App() {
 
   const [companies, setCompanies] = useState<CompanyRecord[]>([]);
   const [totalCompanies, setTotalCompanies] = useState<number>(0);
+  const [localStreamedCount, setLocalStreamedCount] = useState<number>(0);
   const [totalPages, setTotalPages] = useState<number>(1);
   const [matchingContactsTotal, setMatchingContactsTotal] = useState<number>(0);
   const [loadingCompanies, setLoadingCompanies] = useState<boolean>(false);
@@ -215,20 +216,28 @@ export function App() {
         const data = browserDb.searchCompanies(filters);
         setCompanies(data.items);
         setTotalCompanies(data.total);
+        setLocalStreamedCount(data.local_streamed_total ?? data.total);
         setTotalPages(data.total_pages);
         setMatchingContactsTotal(data.matching_contacts_total);
         setSyncStatus(browserDb.getStatus());
         setFacets(browserDb.getFacets(filters.countries));
 
-        if (filters.q.trim() || filters.countries.length > 0 || filters.cities.length > 0) {
+        const needsMoreForPage = filters.page > 1 && data.items.length < 25;
+        if (
+          needsMoreForPage ||
+          filters.q.trim() ||
+          filters.countries.length > 0 ||
+          filters.cities.length > 0
+        ) {
           setLiveApiSearching(true);
           browserDb
-            .liveSearchExternalApis(filters)
+            .liveSearchExternalApis(filters, needsMoreForPage)
             .then((added) => {
               if (added > 0) {
                 const refreshed = browserDb.searchCompanies(filters);
                 setCompanies(refreshed.items);
                 setTotalCompanies(refreshed.total);
+                setLocalStreamedCount(refreshed.local_streamed_total ?? refreshed.total);
                 setTotalPages(refreshed.total_pages);
                 setMatchingContactsTotal(refreshed.matching_contacts_total);
                 setSyncStatus(browserDb.getStatus());
@@ -662,17 +671,26 @@ export function App() {
           <div className="px-5 py-3 border-b border-slate-200 bg-slate-50/70 flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-semibold text-slate-700">
-                Showing{' '}
+                Global Index Matches:{' '}
                 <span className="font-mono font-bold text-slate-900">
                   {formatNumber(totalCompanies)}
                 </span>{' '}
-                matching companies
+                companies
               </span>
+
+              {localStreamedCount > 0 && localStreamedCount !== totalCompanies && (
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-mono bg-slate-200/80 text-slate-700"
+                  title="Rows currently buffered in your browser's RAM. Clicking countries, searching, or clicking '+1,000 PDL Companies' streams more live batches on demand."
+                >
+                  {formatNumber(localStreamedCount)} streamed in RAM
+                </span>
+              )}
 
               {liveApiSearching && (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
                   <Loader2 className="w-3 h-3 animate-spin" />
-                  Fetching live global matches (GLEIF 2.6M + Clearbit + PDL)...
+                  Streaming live matches (GLEIF 2.6M + PDL 32.3M)...
                 </span>
               )}
 

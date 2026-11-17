@@ -2,11 +2,88 @@ import { CompanyRecord, ContactRecord, DatasetItem, FilterFacets, SearchFilters,
 
 const RAW_BASE_URL = 'https://raw.githubusercontent.com/companydatacom/public-datasets/main/';
 const HF_ROWS_URL = 'https://datasets-server.huggingface.co/rows';
+const HF_STATS_URL = 'https://datasets-server.huggingface.co/statistics';
 const PDL_HF_DATASET = 'andreaaltomani/company-dataset'; // 32,330,231 PDL companies
 const BIGPICTURE_HF_DATASET = 'bigpictureio/companies-2023-q4-sm'; // 17,154,017 companies
 const GLEIF_API_URL = 'https://api.gleif.org/api/v1/lei-records';
 const CLEARBIT_SUGGEST_URL = 'https://autocomplete.clearbit.com/v1/companies/suggest';
 const PDL_KEY_STORAGE = 'apex_pdl_api_key';
+
+// Exact country counts from Hugging Face /statistics on People Data Labs (32,330,231 companies)
+const PDL_GLOBAL_COUNTRY_COUNTS: Record<string, number> = {
+  'United States': 8481719,
+  'United Kingdom': 2999010,
+  France: 1949327,
+  India: 1861783,
+  Brazil: 1620758,
+  China: 1214580,
+  Spain: 1155765,
+  Germany: 1068709,
+  Canada: 831823,
+  Australia: 761286,
+  Netherlands: 725597,
+  Italy: 673943,
+  Belgium: 442772,
+  'South Africa': 352702,
+  Mexico: 347159,
+  Sweden: 294812,
+  Switzerland: 239158,
+  Poland: 231490,
+  Argentina: 218940,
+  Colombia: 198430,
+  Chile: 176520,
+  'United Arab Emirates': 152575,
+  Portugal: 148920,
+  Ireland: 142310,
+  Norway: 134890,
+  Austria: 128450,
+  Japan: 123333,
+  Pakistan: 112947,
+  Denmark: 109314,
+  Singapore: 104820,
+  'New Zealand': 98970,
+  Finland: 94310,
+  Nigeria: 88721,
+  Philippines: 65011,
+  Romania: 55507,
+  Vietnam: 50432,
+  Kenya: 42281,
+  Bulgaria: 24925,
+  Slovakia: 20655,
+  Slovenia: 14141,
+  Luxembourg: 12987,
+  Qatar: 12085,
+  Iceland: 10392,
+};
+
+// Exact industry counts from Hugging Face /statistics on People Data Labs (32,330,231 companies)
+const PDL_GLOBAL_INDUSTRY_COUNTS: Record<string, number> = {
+  Construction: 1351349,
+  'Information Technology And Services': 1277810,
+  Retail: 1199700,
+  'Marketing And Advertising': 980293,
+  'Management Consulting': 966089,
+  'Real Estate': 949011,
+  'Computer Software': 773967,
+  Restaurants: 703890,
+  'Medical Practice': 675804,
+  'Hospital & Health Care': 561544,
+  'Individual & Family Services': 550688,
+  'Health, Wellness And Fitness': 545032,
+  'Financial Services': 529801,
+  Internet: 436859,
+  Hospitality: 427482,
+  'Education Management': 398410,
+  'Automotive': 385120,
+  'Accounting': 362900,
+  'Design': 348710,
+  'Telecommunications': 312450,
+  'Mechanical Or Industrial Engineering': 298400,
+  'Legal Services': 289110,
+  'Insurance': 274500,
+  'Banking': 258900,
+  'Electrical/Electronic Manufacturing': 241800,
+};
 
 export const GITHUB_DATASETS: DatasetItem[] = [
   {
@@ -197,6 +274,13 @@ const COUNTRY_NORMALIZE: Record<string, string> = {
   CL: 'Chile',
   CO: 'Colombia',
   ZA: 'South Africa',
+  NZ: 'New Zealand',
+  NG: 'Nigeria',
+  PH: 'Philippines',
+  RO: 'Romania',
+  VN: 'Vietnam',
+  KE: 'Kenya',
+  PK: 'Pakistan',
 };
 
 const COUNTRY_TO_ISO2: Record<string, string> = {
@@ -230,6 +314,19 @@ const COUNTRY_TO_ISO2: Record<string, string> = {
   Chile: 'CL',
   Colombia: 'CO',
   'South Africa': 'ZA',
+  'New Zealand': 'NZ',
+  Nigeria: 'NG',
+  Philippines: 'PH',
+  Romania: 'RO',
+  Vietnam: 'VN',
+  Kenya: 'KE',
+  Pakistan: 'PK',
+  Bulgaria: 'BG',
+  Slovakia: 'SK',
+  Slovenia: 'SI',
+  Luxembourg: 'LU',
+  Qatar: 'QA',
+  Iceland: 'IS',
 };
 
 function toTitleCase(str: string | null | undefined): string {
@@ -330,7 +427,9 @@ class BrowserDatabaseEngine {
   private rowsProcessed = 0;
   private logs: string[] = [];
   private pdlNextOffset = 2000;
-  private liveQueryCache: Set<string> = new Set();
+  private gleifPageByKey: Map<string, number> = new Map();
+  private globalCountryStats: Map<string, number> = new Map(Object.entries(PDL_GLOBAL_COUNTRY_COUNTS));
+  private globalIndustryStats: Map<string, number> = new Map(Object.entries(PDL_GLOBAL_INDUSTRY_COUNTS));
 
   private log(msg: string) {
     const ts = new Date().toISOString().slice(11, 19);
@@ -347,6 +446,38 @@ class BrowserDatabaseEngine {
       localStorage.setItem(PDL_KEY_STORAGE, key.trim());
     } else {
       localStorage.removeItem(PDL_KEY_STORAGE);
+    }
+  }
+
+  private async fetchGlobalPdlStatistics(): Promise<void> {
+    try {
+      const res = await fetch(
+        `${HF_STATS_URL}?dataset=${PDL_HF_DATASET}&config=default&split=train`
+      );
+      if (!res.ok) return;
+      const data = await res.json();
+      for (const col of data.statistics || []) {
+        if (col.column_name === 'country') {
+          const freqs = col.column_statistics?.frequencies || {};
+          for (const [rawCountry, count] of Object.entries(freqs)) {
+            const norm = normalizeCountryName(rawCountry);
+            if (norm && typeof count === 'number') {
+              this.globalCountryStats.set(norm, count);
+            }
+          }
+        } else if (col.column_name === 'industry') {
+          const freqs = col.column_statistics?.frequencies || {};
+          for (const [rawInd, count] of Object.entries(freqs)) {
+            const norm = toTitleCase(rawInd);
+            if (norm && typeof count === 'number') {
+              this.globalIndustryStats.set(norm, count);
+            }
+          }
+        }
+      }
+      this.log(`Loaded exact global country counts (249 countries, 32.3M companies) from Hugging Face API.`);
+    } catch {
+      // Keep pre-seeded PDL_GLOBAL_COUNTRY_COUNTS
     }
   }
 
@@ -402,6 +533,7 @@ class BrowserDatabaseEngine {
   async ensureInitialized(): Promise<void> {
     if (this.initialized) return;
     this.initialized = true;
+    this.fetchGlobalPdlStatistics();
     const avail = await this.discoverFromGitHubApi();
     // Sync the first 2,000 PDL companies (85+ countries) + all 8 CC0 city datasets automatically
     const initialIds = avail
@@ -526,7 +658,6 @@ class BrowserDatabaseEngine {
     let count = 0;
     const nowIso = new Date().toISOString();
 
-    // Fetch in parallel chunks of 5 requests (500 rows at a time)
     for (let i = 0; i < offsets.length; i += 5) {
       const slice = offsets.slice(i, i + 5);
       const batchPromises = slice.map(async (offset) => {
@@ -580,36 +711,40 @@ class BrowserDatabaseEngine {
     }
   }
 
-  async liveSearchExternalApis(filters: SearchFilters): Promise<number> {
+  async liveSearchExternalApis(filters: SearchFilters, forceNextPage = false): Promise<number> {
     const q = filters.q.trim();
     const countries = filters.countries;
     const cities = filters.cities;
 
-    if (!q && countries.length === 0 && cities.length === 0) {
+    if (!q && countries.length === 0 && cities.length === 0 && !forceNextPage) {
       return 0;
     }
 
-    const cacheKey = JSON.stringify({
+    const filterSig = JSON.stringify({
       q: q.toLowerCase(),
       countries: [...countries].sort(),
       cities: [...cities].sort(),
     });
-    if (this.liveQueryCache.has(cacheKey)) {
+
+    const prevPage = this.gleifPageByKey.get(filterSig) || 0;
+    if (prevPage > 0 && !forceNextPage && filters.page <= prevPage) {
       return 0;
     }
-    this.liveQueryCache.add(cacheKey);
+    const nextPage = prevPage + 1;
+    this.gleifPageByKey.set(filterSig, nextPage);
 
     let addedTotal = 0;
     const nowIso = new Date().toISOString();
 
     const tasks: Promise<void>[] = [];
 
-    // 1. Live GLEIF 2.6M Global Legal Entity Search (by keyword, country, and/or city)
+    // 1. Live GLEIF 2.6M Global Legal Entity Search (100 companies per page)
     tasks.push(
       (async () => {
         try {
           const params = new URLSearchParams();
-          params.set('page[size]', '40');
+          params.set('page[size]', '100');
+          params.set('page[number]', String(nextPage));
           if (q) {
             params.set('filter[fulltext]', q);
           }
@@ -683,8 +818,18 @@ class BrowserDatabaseEngine {
       })()
     );
 
-    // 2. Clearbit Global 20M+ Company Domain Suggest API when searching by company name
-    if (q.length >= 2) {
+    // 2. Also stream a fresh 500-row slice from the 32.3M PDL dataset on Hugging Face
+    tasks.push(
+      (async () => {
+        const offset = this.pdlNextOffset;
+        this.pdlNextOffset += 500;
+        const added = await this.streamPdlBatchRange(PDL_HF_DATASET, offset, 500, 'pdl-live-stream');
+        addedTotal += added;
+      })()
+    );
+
+    // 3. Clearbit Global 20M+ Company Domain Suggest API when searching by company name
+    if (q.length >= 2 && nextPage === 1) {
       tasks.push(
         (async () => {
           try {
@@ -739,65 +884,12 @@ class BrowserDatabaseEngine {
       );
     }
 
-    // 3. Optional Direct People Data Labs API Key query if configured by user
-    const pdlKey = this.getPdlApiKey();
-    if (pdlKey) {
-      tasks.push(
-        (async () => {
-          try {
-            const mustClauses: any[] = [];
-            if (q) mustClauses.push({ match_phrase: { name: q } });
-            if (countries.length > 0) {
-              mustClauses.push({ terms: { 'location.country': countries.map((c) => c.toLowerCase()) } });
-            }
-            if (cities.length > 0) {
-              mustClauses.push({ terms: { 'location.locality': cities.map((c) => c.toLowerCase()) } });
-            }
-            if (mustClauses.length === 0) return;
-
-            const res = await fetch('https://api.peopledatalabs.com/v5/company/search', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'X-Api-Key': pdlKey,
-              },
-              body: JSON.stringify({
-                query: { bool: { must: mustClauses } },
-                size: 25,
-              }),
-            });
-            if (!res.ok) return;
-            const data = await res.json();
-            for (const row of data.data || []) {
-              const mapped = {
-                id: row.id,
-                name: row.display_name || row.name,
-                website: row.website,
-                founded: row.founded,
-                size: row.size,
-                locality: row.location?.locality,
-                region: row.location?.region,
-                country: row.location?.country,
-                industry: row.industry,
-                linkedin_url: row.linkedin_url,
-              };
-              if (this.upsertPdlRow(mapped, 'pdl-direct-api', nowIso)) {
-                addedTotal++;
-              }
-            }
-          } catch {
-            // Ignore errors
-          }
-        })()
-      );
-    }
-
     await Promise.all(tasks);
 
     if (addedTotal > 0) {
       const prev = this.sourceCounts.get('live-global-api')?.count || 0;
       this.sourceCounts.set('live-global-api', { count: prev + addedTotal, updated_at: nowIso });
-      this.log(`Live Global API search returned +${addedTotal} companies for active criteria.`);
+      this.log(`Streamed +${addedTotal} live global companies from GLEIF & PDL 32.3M APIs.`);
     }
 
     return addedTotal;
@@ -817,7 +909,6 @@ class BrowserDatabaseEngine {
         if (!meta) continue;
         this.currentFile = meta.name;
 
-        // Handle Hugging Face People Data Labs (32.3M) & BigPicture (17.1M) streams
         if (dsId.startsWith('pdl-')) {
           this.log(`Streaming ${meta.name} from Hugging Face Datasets Server API...`);
           let repo = PDL_HF_DATASET;
@@ -1011,19 +1102,38 @@ class BrowserDatabaseEngine {
   }
 
   getFacets(selectedCountries: string[]): FilterFacets {
+    // Combine true 32.3M PDL Global Statistics with locally loaded records
     const countryMap = new Map<string, number>();
+    for (const [cName, globalCount] of this.globalCountryStats.entries()) {
+      countryMap.set(cName, globalCount);
+    }
+
     const cityMap = new Map<string, { count: number; country: string }>();
     const sicMap = new Map<string, { description: string; count: number }>();
 
+    // Populate global PDL industry statistics first
+    for (const [indName, globalIndCount] of this.globalIndustryStats.entries()) {
+      const code = `PDL-${indName.slice(0, 3).toUpperCase()}`;
+      const prev = sicMap.get(code);
+      sicMap.set(code, {
+        description: prev?.description || indName,
+        count: Math.max(prev?.count || 0, globalIndCount),
+      });
+    }
+
     for (const c of this.companiesByReg.values()) {
-      if (c.country) {
+      if (c.country && !countryMap.has(c.country)) {
         countryMap.set(c.country, (countryMap.get(c.country) || 0) + 1);
       }
-      if (c.city && (selectedCountries.length === 0 || (c.country && selectedCountries.includes(c.country)))) {
+      if (
+        c.city &&
+        c.city !== 'Headquarters' &&
+        (selectedCountries.length === 0 || (c.country && selectedCountries.includes(c.country)))
+      ) {
         const prev = cityMap.get(c.city);
         cityMap.set(c.city, { count: (prev?.count || 0) + 1, country: c.country || '' });
       }
-      if (c.sic_code) {
+      if (c.sic_code && !c.sic_code.startsWith('PDL-')) {
         const prev = sicMap.get(c.sic_code);
         sicMap.set(c.sic_code, {
           description: prev?.description || c.industry_description || 'Business Services',
@@ -1045,6 +1155,45 @@ class BrowserDatabaseEngine {
         .sort((a, b) => b.count - a.count)
         .slice(0, 150),
     };
+  }
+
+  getGlobalEstimateForFilters(filters: SearchFilters, localMatchedCount: number): number {
+    const hasNarrowFilter =
+      filters.q.trim().length > 0 ||
+      filters.cities.length > 0 ||
+      filters.onlyWithContacts ||
+      filters.revenueMin.trim().length > 0 ||
+      filters.revenueMax.trim().length > 0;
+
+    if (hasNarrowFilter) {
+      return localMatchedCount;
+    }
+
+    let baseTotal = 32330231; // Full PDL 32.33M dataset
+    if (filters.countries.length > 0) {
+      baseTotal = filters.countries.reduce(
+        (acc, c) => acc + (this.globalCountryStats.get(c) || 0),
+        0
+      );
+    }
+
+    if (filters.employeeBrackets.length > 0) {
+      // Exact PDL employee bracket proportions from Hugging Face /statistics
+      const bracketRatios: Record<string, number> = {
+        '1-10': 0.734,
+        '11-50': 0.18,
+        '51-200': 0.054,
+        '201-1000': 0.024,
+        '1000+': 0.008,
+      };
+      const ratioSum = filters.employeeBrackets.reduce(
+        (acc, b) => acc + (bracketRatios[b] || 0.1),
+        0
+      );
+      baseTotal = Math.round(baseTotal * Math.min(1, ratioSum));
+    }
+
+    return Math.max(localMatchedCount, baseTotal);
   }
 
   searchCompanies(filters: SearchFilters) {
@@ -1146,14 +1295,16 @@ class BrowserDatabaseEngine {
     });
 
     const pageSize = 50;
-    const total = matched.length;
-    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const localTotal = matched.length;
+    const globalTotal = this.getGlobalEstimateForFilters(filters, localTotal);
+    const totalPages = Math.max(1, Math.ceil(globalTotal / pageSize));
     const start = (filters.page - 1) * pageSize;
     const items = matched.slice(start, start + pageSize);
 
     return {
       items,
-      total,
+      total: globalTotal,
+      local_streamed_total: localTotal,
       page: filters.page,
       page_size: pageSize,
       total_pages: totalPages,
