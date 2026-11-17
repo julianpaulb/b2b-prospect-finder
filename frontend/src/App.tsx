@@ -73,6 +73,8 @@ export function App() {
   const [syncStatus, setSyncStatus] = useState<SyncStatusResponse | null>(null);
   const [isDatasetModalOpen, setIsDatasetModalOpen] = useState<boolean>(false);
   const [selectedCompany, setSelectedCompany] = useState<CompanyRecord | null>(null);
+  const [liveApiSearching, setLiveApiSearching] = useState<boolean>(false);
+  const [streamingMorePdl, setStreamingMorePdl] = useState<boolean>(false);
 
   // Verify stored password or detect static GitHub Pages mode on mount
   useEffect(() => {
@@ -95,7 +97,7 @@ export function App() {
           setIsAuthenticated(false);
         }
       } catch {
-        // Running on GitHub Pages / static hosting: initialize in-browser CC0 streaming engine
+        // Running on GitHub Pages / static hosting: initialize in-browser CC0 + PDL 32.3M streaming engine
         setIsStaticCloudMode(true);
         if (password) {
           setIsAuthenticated(true);
@@ -217,6 +219,24 @@ export function App() {
         setMatchingContactsTotal(data.matching_contacts_total);
         setSyncStatus(browserDb.getStatus());
         setFacets(browserDb.getFacets(filters.countries));
+
+        if (filters.q.trim() || filters.countries.length > 0 || filters.cities.length > 0) {
+          setLiveApiSearching(true);
+          browserDb
+            .liveSearchExternalApis(filters)
+            .then((added) => {
+              if (added > 0) {
+                const refreshed = browserDb.searchCompanies(filters);
+                setCompanies(refreshed.items);
+                setTotalCompanies(refreshed.total);
+                setTotalPages(refreshed.total_pages);
+                setMatchingContactsTotal(refreshed.matching_contacts_total);
+                setSyncStatus(browserDb.getStatus());
+                setFacets(browserDb.getFacets(filters.countries));
+              }
+            })
+            .finally(() => setLiveApiSearching(false));
+        }
         return;
       }
 
@@ -265,6 +285,22 @@ export function App() {
       setLoadingCompanies(false);
     }
   }, [isAuthenticated, isStaticCloudMode, password, filters]);
+
+  const handleStreamMorePdl = async () => {
+    if (streamingMorePdl) return;
+    setStreamingMorePdl(true);
+    try {
+      await browserDb.streamMorePdlCompanies(1000);
+      setSyncStatus(browserDb.getStatus());
+      setFacets(browserDb.getFacets(filters.countries));
+      const refreshed = browserDb.searchCompanies(filters);
+      setCompanies(refreshed.items);
+      setTotalCompanies(refreshed.total);
+      setTotalPages(refreshed.total_pages);
+    } finally {
+      setStreamingMorePdl(false);
+    }
+  };
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -529,29 +565,53 @@ export function App() {
                 ApexB2B Intelligence
               </h1>
               <span className="text-[10px] text-slate-400 font-mono">
-                CC0 Global Registries • PostgreSQL Cloud
+                PDL 32.3M + GLEIF 2.6M Live Global API • CC0 Registries
               </span>
             </div>
           </div>
 
           <div className="hidden md:flex items-center gap-2 pl-4 border-l border-slate-800 text-xs">
+            <span
+              className="px-2.5 py-1 rounded-full bg-emerald-950/80 border border-emerald-700/50 text-emerald-300 font-mono text-[11px]"
+              title="Connected to People Data Labs (32,330,231 companies via HuggingFace API) + GLEIF Global API (2,600,000+ companies)"
+            >
+              <strong className="text-emerald-200">34.9M+</strong> Global API Index
+            </span>
             <span className="px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 font-mono text-[11px]">
-              <strong className="text-white">{formatNumber(syncStatus?.total_companies || 0)}</strong> Companies
+              <strong className="text-white">{formatNumber(syncStatus?.total_companies || 0)}</strong> Loaded
             </span>
             <span className="px-2.5 py-1 rounded-full bg-slate-800 text-blue-300 font-mono text-[11px]">
               <strong className="text-blue-200">{formatNumber(syncStatus?.total_contacts || 0)}</strong> Contacts
             </span>
-            {syncStatus?.sync.is_running && (
+            {(syncStatus?.sync.is_running || liveApiSearching || streamingMorePdl) && (
               <span className="px-2.5 py-1 rounded-full bg-blue-600/20 border border-blue-500/40 text-blue-300 text-[11px] flex items-center gap-1.5">
                 <Loader2 className="w-3 h-3 animate-spin" />
-                Streaming {syncStatus.sync.current_file}...
+                {liveApiSearching
+                  ? 'Querying Live Global APIs...'
+                  : `Streaming ${syncStatus?.sync.current_file || 'PDL 32.3M Index'}...`}
               </span>
             )}
           </div>
         </div>
 
         {/* Right Actions */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            id="stream-more-pdl-btn"
+            onClick={handleStreamMorePdl}
+            disabled={streamingMorePdl || syncStatus?.sync.is_running}
+            title="Stream another 1,000 global companies from the 32.3M People Data Labs dataset"
+            className="px-2.5 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+          >
+            {streamingMorePdl ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-400" />
+            ) : (
+              <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+            )}
+            <span>+1,000 PDL Companies</span>
+          </button>
+
           <button
             type="button"
             id="open-dataset-manager-btn"
@@ -559,9 +619,9 @@ export function App() {
             className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
           >
             <Database className="w-3.5 h-3.5 text-blue-400" />
-            <span>Dataset Manager & Sync</span>
+            <span>Datasets & PDL Stream</span>
             <span className="px-1.5 py-0.2 rounded bg-blue-600 text-[10px] font-mono text-white">
-              {syncStatus?.sources.length || 0}/8
+              34.9M
             </span>
           </button>
 
@@ -608,6 +668,13 @@ export function App() {
                 </span>{' '}
                 matching companies
               </span>
+
+              {liveApiSearching && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Fetching live global matches (GLEIF 2.6M + Clearbit + PDL)...
+                </span>
+              )}
 
               {filters.jobTitle.trim() && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
@@ -672,7 +739,7 @@ export function App() {
                   <tr>
                     <td colSpan={7} className="py-20 text-center text-slate-500">
                       <Loader2 className="w-6 h-6 animate-spin text-blue-600 mx-auto mb-2" />
-                      Querying PostgreSQL intelligence index...
+                      Streaming from People Data Labs (32.3M) & Global Registries...
                     </td>
                   </tr>
                 ) : companies.length === 0 ? (
@@ -684,7 +751,15 @@ export function App() {
                           No companies match the active criteria
                         </div>
                         <p className="text-xs text-slate-500 mt-1">
-                          Try clearing some filters or open the{' '}
+                          Click{' '}
+                          <button
+                            type="button"
+                            onClick={handleStreamMorePdl}
+                            className="text-emerald-600 font-semibold hover:underline cursor-pointer"
+                          >
+                            +1,000 PDL Companies
+                          </button>{' '}
+                          in the top bar or open the{' '}
                           <button
                             type="button"
                             onClick={() => setIsDatasetModalOpen(true)}
@@ -692,7 +767,7 @@ export function App() {
                           >
                             Dataset Manager
                           </button>{' '}
-                          to stream additional country/city datasets into PostgreSQL.
+                          to stream more global batches.
                         </p>
                       </div>
                     </td>
@@ -721,10 +796,17 @@ export function App() {
                             <span className="font-mono text-slate-400">
                               #{comp.registration_number}
                             </span>
-                            {comp.trade_name && comp.trade_name !== comp.company_name && (
-                              <span className="truncate text-slate-500">
-                                • DBA {comp.trade_name}
+                            {comp.website ? (
+                              <span className="truncate text-blue-600 font-mono">
+                                • {comp.website}
                               </span>
+                            ) : (
+                              comp.trade_name &&
+                              comp.trade_name !== comp.company_name && (
+                                <span className="truncate text-slate-500">
+                                  • DBA {comp.trade_name}
+                                </span>
+                              )
                             )}
                           </div>
                         </td>

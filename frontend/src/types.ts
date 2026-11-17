@@ -33,6 +33,8 @@ export interface CompanyRecord {
   import_export_codes: string | null;
   source_file: string | null;
   updated_at: string | null;
+  website?: string | null;
+  linkedin_company_url?: string | null;
   contacts?: ContactRecord[];
   matching_contacts?: ContactRecord[];
   related_entities?: Array<{
@@ -62,6 +64,8 @@ export interface DatasetItem {
 export interface SyncStatusResponse {
   total_companies: number;
   total_contacts: number;
+  global_index_total?: number;
+  pdl_offset?: number;
   sources: Array<{
     source_file: string;
     count: number;

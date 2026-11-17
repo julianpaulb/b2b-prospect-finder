@@ -176,10 +176,10 @@ export const DatasetModal: React.FC<DatasetModalProps> = ({
             </div>
             <div>
               <h2 className="text-base font-semibold tracking-tight">
-                Cloud Dataset Manager & People CSV Importer
+                Global Dataset Manager: People Data Labs (32.3M) + GLEIF (2.6M) + CC0
               </h2>
               <p className="text-xs text-slate-400">
-                Direct HTTPS streaming from GitHub <code className="text-blue-300">companydatacom/public-datasets</code> (CC0) into PostgreSQL
+                Direct HTTPS streaming from <code className="text-emerald-300">datasets-server.huggingface.co (32.3M PDL)</code>, <code className="text-blue-300">api.gleif.org (2.6M)</code> &amp; GitHub CC0
               </p>
             </div>
           </div>
@@ -203,55 +203,51 @@ export const DatasetModal: React.FC<DatasetModalProps> = ({
 
           {/* Top Stats Bar */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-4 rounded-lg bg-emerald-50/60 border border-emerald-200">
+              <div className="text-xs font-medium text-emerald-800 uppercase tracking-wider">
+                Connected Global API Index
+              </div>
+              <div className="mt-1 text-2xl font-bold font-mono text-emerald-900">
+                34,930,231+
+              </div>
+              <div className="mt-1 text-[11px] text-emerald-700">
+                32.3M PDL (HuggingFace API) + 2.6M GLEIF Live
+              </div>
+            </div>
+
             <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
               <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-                PostgreSQL Companies
+                Loaded in Active Workspace
               </div>
               <div className="mt-1 text-2xl font-bold font-mono text-slate-900">
                 {formatNumber(syncStatus?.total_companies || 0)}
               </div>
               <div className="mt-1 text-[11px] text-slate-500">
-                Indexed & deduplicated by Registration #
+                Companies across 85+ countries ready for instant filter
               </div>
             </div>
 
             <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
               <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-                Matched Contacts & CEOs
+                PDL Live Batch Streamer
               </div>
-              <div className="mt-1 text-2xl font-bold font-mono text-blue-600">
-                {formatNumber(syncStatus?.total_contacts || 0)}
+              <div className="mt-2">
+                <button
+                  type="button"
+                  disabled={isRunning}
+                  onClick={async () => {
+                    await browserDb.streamMorePdlCompanies(2000);
+                    fetchAvailable(false);
+                    onRefreshStatus();
+                  }}
+                  className="w-full py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-semibold flex items-center justify-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isRunning ? 'animate-spin' : ''}`} />
+                  <span>Stream +2,000 More PDL Companies</span>
+                </button>
               </div>
-              <div className="mt-1 text-[11px] text-slate-500">
-                Linked to company profiles for Role Search
-              </div>
-            </div>
-
-            <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
-              <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-                Sync Engine Status
-              </div>
-              <div className="mt-1 flex items-center gap-2">
-                {isRunning ? (
-                  <>
-                    <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
-                    <span className="text-sm font-semibold text-blue-700">
-                      Streaming {syncStatus?.sync.current_file || 'Dataset'}...
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                    <span className="text-sm font-semibold text-emerald-700">
-                      Ready ({syncStatus?.sources.length || 0} / {datasets.length || 8} regions loaded)
-                    </span>
-                  </>
-                )}
-              </div>
-              <div className="mt-1 text-[11px] text-slate-500">
-                {isRunning
-                  ? `${formatNumber(syncStatus?.sync.rows_processed || 0)} rows upserted in current job`
-                  : 'Zero local files — streams in 250-row batches'}
+              <div className="mt-1.5 text-[10px] text-slate-500 text-center">
+                Current PDL offset: {formatNumber(syncStatus?.pdl_offset || 2000)} / 32,330,231
               </div>
             </div>
           </div>

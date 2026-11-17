@@ -351,12 +351,46 @@ export const CompanyDrawer: React.FC<CompanyDrawerProps> = ({
                 </span>
               </div>
 
+              {company.website && (
+                <div className="p-3 flex items-center justify-between">
+                  <span className="text-slate-500 flex items-center gap-1.5">
+                    <Globe className="w-3.5 h-3.5" /> Official Website
+                  </span>
+                  <a
+                    href={`https://${company.website.replace(/^https?:\/\//, '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-mono text-blue-600 hover:underline flex items-center gap-1"
+                  >
+                    <span>{company.website}</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              )}
+
+              {company.linkedin_company_url && (
+                <div className="p-3 flex items-center justify-between">
+                  <span className="text-slate-500 flex items-center gap-1.5">
+                    <ExternalLink className="w-3.5 h-3.5" /> LinkedIn Company Page
+                  </span>
+                  <a
+                    href={company.linkedin_company_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-mono text-blue-600 hover:underline flex items-center gap-1 truncate max-w-[260px]"
+                  >
+                    <span>{company.linkedin_company_url.replace(/^https?:\/\/(www\.)?/, '')}</span>
+                    <ExternalLink className="w-3 h-3 shrink-0" />
+                  </a>
+                </div>
+              )}
+
               <div className="p-3 flex items-center justify-between">
                 <span className="text-slate-500 flex items-center gap-1.5">
                   <Globe className="w-3.5 h-3.5" /> Source Dataset
                 </span>
                 <span className="font-mono text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
-                  datasets/{company.source_file}
+                  {company.source_file}
                 </span>
               </div>
             </div>
