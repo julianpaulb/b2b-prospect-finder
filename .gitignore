@@ -1,0 +1,36 @@
+# Home directory dotfiles & system caches
+.bash_logout
+.bashrc
+.profile
+.gitconfig
+.gemini
+.cache/
+.local/
+.npm/
+.config/
+.wget-hsts
+b2b-prospect-finder.zip
+b2b-prospect-finder.bundle
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# Environment variables
+.env
+.env.local
+
+# Node / Frontend build
+frontend/node_modules/
+frontend/dist/
+npm-debug.log*
+
+# OS / Editor
+.DS_Store
+.idea/
+.vscode/
+*.swp

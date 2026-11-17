@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: apex-b2b-intelligence
+    runtime: docker
+    plan: starter
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: apex-b2b-postgres
+          property: connectionString
+      - key: APP_PASSWORD
+        generateValue: true
+      - key: AUTO_SYNC_STARTER
+        value: "true"
+
+databases:
+  - name: apex-b2b-postgres
+    plan: starter
+    databaseName: b2b_intelligence
+    user: b2b_admin
