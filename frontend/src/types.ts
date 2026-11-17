@@ -35,6 +35,7 @@ export interface CompanyRecord {
   updated_at: string | null;
   website?: string | null;
   linkedin_company_url?: string | null;
+  employee_range?: string | null;
   contacts?: ContactRecord[];
   matching_contacts?: ContactRecord[];
   related_entities?: Array<{

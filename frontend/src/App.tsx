@@ -865,11 +865,23 @@ export function App() {
 
                         {/* 4. Employees */}
                         <td className="py-3 px-3 text-right font-mono text-slate-800 whitespace-nowrap">
-                          {formatNumber(comp.employees_total)}
+                          {comp.employee_range ? (
+                            <span title={comp.employee_range}>
+                              {comp.employee_range.replace(' (PDL Range)', '')}
+                            </span>
+                          ) : (
+                            formatNumber(comp.employees_total)
+                          )}
                         </td>
 
                         {/* 5. Annual Revenue (USD) */}
-                        <td className="py-3 px-3 text-right font-mono font-semibold text-emerald-700 whitespace-nowrap">
+                        <td
+                          className={`py-3 px-3 text-right font-mono whitespace-nowrap ${
+                            comp.revenue_usd
+                              ? 'font-semibold text-emerald-700'
+                              : 'text-slate-400'
+                          }`}
+                        >
                           {formatCurrencyUSD(comp.revenue_usd)}
                         </td>
 

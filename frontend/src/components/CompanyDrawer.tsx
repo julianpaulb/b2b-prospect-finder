@@ -167,9 +167,15 @@ export const CompanyDrawer: React.FC<CompanyDrawerProps> = ({
                 Employees
               </div>
               <div className="mt-1 text-base font-bold font-mono text-slate-900">
-                {formatNumber(company.employees_total)}
+                {company.employee_range
+                  ? company.employee_range.replace(' (PDL Range)', '')
+                  : formatNumber(company.employees_total)}
               </div>
-              {company.employees_onsite ? (
+              {company.employee_range ? (
+                <div className="text-[10px] font-mono text-slate-400 truncate">
+                  {company.employee_range}
+                </div>
+              ) : company.employees_onsite ? (
                 <div className="text-[10px] font-mono text-slate-400">
                   On-site: {formatNumber(company.employees_onsite)}
                 </div>
