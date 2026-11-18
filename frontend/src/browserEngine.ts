@@ -563,7 +563,16 @@ class BrowserDatabaseEngine {
 
     try {
       const qClean = filters.q.trim().toLowerCase();
-      const whereClauses: string[] = ['country IS NOT NULL', 'city IS NOT NULL'];
+      const hasAnyFilter = Boolean(
+        qClean ||
+          filters.countries.length > 0 ||
+          filters.cities.length > 0 ||
+          filters.sicCodes.length > 0 ||
+          filters.industryKeyword.trim() ||
+          filters.employeeBrackets.length > 0
+      );
+
+      const whereClauses: string[] = ['country IS NOT NULL'];
       const params: Array<Record<string, any>> = [];
 
       if (filters.countries.length > 0) {
@@ -644,12 +653,14 @@ class BrowserDatabaseEngine {
             ELSE 3
           END ASC`
         );
-      } else {
+      } else if (!hasAnyFilter) {
+        // Default initial landing view (no filters selected): show established global enterprises
         whereClauses.push(
+          'city IS NOT NULL',
           'website IS NOT NULL',
           'founded IS NOT NULL',
           'industry IS NOT NULL',
-          "REGEXP_CONTAINS(website, r'^[a-z0-9-]+\\.[a-z]{2,}$')"
+          "REGEXP_CONTAINS(website, r'^[a-z0-9.-]+\\.[a-z]{2,}$')"
         );
       }
 
@@ -663,22 +674,26 @@ class BrowserDatabaseEngine {
         orderParts.push('employees_num DESC NULLS LAST');
       }
 
-      if (qClean) {
-        orderParts.push(
-          'CASE WHEN website IS NOT NULL AND founded IS NOT NULL THEN 0 WHEN website IS NOT NULL THEN 1 ELSE 2 END ASC'
-        );
-        orderParts.push('founded ASC NULLS LAST');
-      } else {
+      if (!hasAnyFilter) {
         orderParts.push(
           "CASE WHEN ENDS_WITH(website, '.com') AND LENGTH(website) <= 12 THEN 0 ELSE 1 END ASC"
         );
         orderParts.push('LENGTH(website) ASC NULLS LAST');
+      } else {
+        orderParts.push(
+          'CASE WHEN website IS NOT NULL AND founded IS NOT NULL AND city IS NOT NULL THEN 0 WHEN website IS NOT NULL THEN 1 ELSE 2 END ASC'
+        );
+        if (qClean) {
+          orderParts.push('founded ASC NULLS LAST');
+        }
       }
       orderParts.push('name ASC');
 
       const offset = (filters.page - 1) * 50;
+      const countExpr = hasAnyFilter ? 'COUNT(*) OVER() AS exact_total,' : '';
       const sql = `
         SELECT
+          ${countExpr}
           id,
           name,
           website,
@@ -771,16 +786,18 @@ class BrowserDatabaseEngine {
         if (items.length >= 50) break;
       }
 
-      const estimatedTotal =
-        qClean || filters.cities.length > 0
-          ? items.length < 50
-            ? (filters.page - 1) * 50 + items.length
-            : Math.max(items.length * 10, 500)
-          : this.getGlobalEstimateForFilters(filters, items.length);
+      let exactTotal = 31776169;
+      if (hasAnyFilter) {
+        if (rows.length > 0 && rows[0].exact_total !== undefined && rows[0].exact_total !== null) {
+          exactTotal = Number(rows[0].exact_total);
+        } else {
+          exactTotal = 0;
+        }
+      }
 
       this.currentItems = items;
-      this.currentTotal = estimatedTotal;
-      this.queryCache.set(cacheKey, { items, total: estimatedTotal });
+      this.currentTotal = exactTotal;
+      this.queryCache.set(cacheKey, { items, total: exactTotal });
       this.notify();
       return items.length;
     } catch (err: any) {
