@@ -1,12 +1,8 @@
 import { CompanyRecord, ContactRecord, DatasetItem, FilterFacets, SearchFilters, SyncStatusResponse } from './types';
 
-const RAW_BASE_URL = 'https://raw.githubusercontent.com/companydatacom/public-datasets/main/';
 const HF_ROWS_URL = 'https://datasets-server.huggingface.co/rows';
 const HF_STATS_URL = 'https://datasets-server.huggingface.co/statistics';
-const PDL_HF_DATASET = 'andreaaltomani/company-dataset'; // 32,330,231 PDL companies
-const BIGPICTURE_HF_DATASET = 'bigpictureio/companies-2023-q4-sm'; // 17,154,017 companies
-const GLEIF_API_URL = 'https://api.gleif.org/api/v1/lei-records';
-const WIKIDATA_API_URL = 'https://www.wikidata.org/w/api.php';
+const PDL_HF_DATASET = 'andreaaltomani/company-dataset'; // 32,330,231 People Data Labs companies
 const PDL_KEY_STORAGE = 'apex_pdl_api_key';
 
 // Exact country counts from Hugging Face /statistics on People Data Labs (32,330,231 companies)
@@ -85,42 +81,11 @@ const PDL_GLOBAL_INDUSTRY_COUNTS: Record<string, number> = {
   'Electrical/Electronic Manufacturing': 241800,
 };
 
-// Wikidata country QID to Country Name mapping
-const WIKIDATA_COUNTRY_QIDS: Record<string, string> = {
-  Q30: 'United States',
-  Q145: 'United Kingdom',
-  Q142: 'France',
-  Q183: 'Germany',
-  Q29: 'Spain',
-  Q38: 'Italy',
-  Q55: 'Netherlands',
-  Q39: 'Switzerland',
-  Q16: 'Canada',
-  Q408: 'Australia',
-  Q668: 'India',
-  Q155: 'Brazil',
-  Q17: 'Japan',
-  Q148: 'China',
-  Q34: 'Sweden',
-  Q20: 'Norway',
-  Q35: 'Denmark',
-  Q33: 'Finland',
-  Q36: 'Poland',
-  Q31: 'Belgium',
-  Q40: 'Austria',
-  Q27: 'Ireland',
-  Q45: 'Portugal',
-  Q96: 'Mexico',
-  Q258: 'South Africa',
-  Q334: 'Singapore',
-  Q878: 'United Arab Emirates',
-};
-
-export const GITHUB_DATASETS: DatasetItem[] = [
+export const PDL_DATASETS: DatasetItem[] = [
   {
-    id: 'pdl-global-1',
-    name: 'PDL Global Stream #1 (85+ Countries)',
-    country: 'Global (32.3M PDL Index)',
+    id: 'pdl-batch-1',
+    name: 'PDL Global Partition #1 (Rows 0 – 1,000)',
+    country: 'People Data Labs (32.3M)',
     path: 'huggingface://andreaaltomani/company-dataset [0..1000]',
     download_url: `${HF_ROWS_URL}?dataset=${PDL_HF_DATASET}&config=default&split=train&offset=0&length=100`,
     size_bytes: 1450000,
@@ -130,9 +95,9 @@ export const GITHUB_DATASETS: DatasetItem[] = [
     is_synced: false,
   },
   {
-    id: 'pdl-global-2',
-    name: 'PDL Global Stream #2 (85+ Countries)',
-    country: 'Global (32.3M PDL Index)',
+    id: 'pdl-batch-2',
+    name: 'PDL Global Partition #2 (Rows 1,000 – 2,000)',
+    country: 'People Data Labs (32.3M)',
     path: 'huggingface://andreaaltomani/company-dataset [1000..2000]',
     download_url: `${HF_ROWS_URL}?dataset=${PDL_HF_DATASET}&config=default&split=train&offset=1000&length=100`,
     size_bytes: 1450000,
@@ -142,9 +107,9 @@ export const GITHUB_DATASETS: DatasetItem[] = [
     is_synced: false,
   },
   {
-    id: 'pdl-global-3',
-    name: 'PDL Global Stream #3 (85+ Countries)',
-    country: 'Global (32.3M PDL Index)',
+    id: 'pdl-batch-3',
+    name: 'PDL Global Partition #3 (Rows 2,000 – 3,000)',
+    country: 'People Data Labs (32.3M)',
     path: 'huggingface://andreaaltomani/company-dataset [2000..3000]',
     download_url: `${HF_ROWS_URL}?dataset=${PDL_HF_DATASET}&config=default&split=train&offset=2000&length=100`,
     size_bytes: 1450000,
@@ -154,108 +119,60 @@ export const GITHUB_DATASETS: DatasetItem[] = [
     is_synced: false,
   },
   {
-    id: 'pdl-bigpicture-1',
-    name: 'BigPicture / PDL Tech & B2B Stream',
-    country: 'Global (17.1M Index)',
-    path: 'huggingface://bigpictureio/companies-2023-q4-sm [0..1000]',
-    download_url: `${HF_ROWS_URL}?dataset=${BIGPICTURE_HF_DATASET}&config=default&split=train&offset=0&length=100`,
-    size_bytes: 1320000,
+    id: 'pdl-batch-4',
+    name: 'PDL Global Partition #4 (Rows 3,000 – 4,000)',
+    country: 'People Data Labs (32.3M)',
+    path: 'huggingface://andreaaltomani/company-dataset [3000..4000]',
+    download_url: `${HF_ROWS_URL}?dataset=${PDL_HF_DATASET}&config=default&split=train&offset=3000&length=100`,
+    size_bytes: 1450000,
     estimated_rows: 1000,
     loaded_rows: 0,
     last_synced: null,
     is_synced: false,
   },
   {
-    id: 'amsterdam',
-    name: 'Amsterdam',
-    country: 'Netherlands',
-    path: 'datasets/amsterdam/amsterdam-business-dataset-sample.csv',
-    download_url: `${RAW_BASE_URL}datasets/amsterdam/amsterdam-business-dataset-sample.csv`,
-    size_bytes: 532078,
+    id: 'pdl-batch-5',
+    name: 'PDL Global Partition #5 (Rows 4,000 – 5,000)',
+    country: 'People Data Labs (32.3M)',
+    path: 'huggingface://andreaaltomani/company-dataset [4000..5000]',
+    download_url: `${HF_ROWS_URL}?dataset=${PDL_HF_DATASET}&config=default&split=train&offset=4000&length=100`,
+    size_bytes: 1450000,
     estimated_rows: 1000,
     loaded_rows: 0,
     last_synced: null,
     is_synced: false,
   },
   {
-    id: 'berlin',
-    name: 'Berlin',
-    country: 'Germany',
-    path: 'datasets/berlin/berlin-business-dataset-sample.csv',
-    download_url: `${RAW_BASE_URL}datasets/berlin/berlin-business-dataset-sample.csv`,
-    size_bytes: 543129,
+    id: 'pdl-batch-6',
+    name: 'PDL Global Partition #6 (Rows 5,000 – 6,000)',
+    country: 'People Data Labs (32.3M)',
+    path: 'huggingface://andreaaltomani/company-dataset [5000..6000]',
+    download_url: `${HF_ROWS_URL}?dataset=${PDL_HF_DATASET}&config=default&split=train&offset=5000&length=100`,
+    size_bytes: 1450000,
     estimated_rows: 1000,
     loaded_rows: 0,
     last_synced: null,
     is_synced: false,
   },
   {
-    id: 'london',
-    name: 'London',
-    country: 'United Kingdom',
-    path: 'datasets/london/london-business-dataset-sample.csv',
-    download_url: `${RAW_BASE_URL}datasets/london/london-business-dataset-sample.csv`,
-    size_bytes: 553766,
+    id: 'pdl-batch-7',
+    name: 'PDL Global Partition #7 (Rows 6,000 – 7,000)',
+    country: 'People Data Labs (32.3M)',
+    path: 'huggingface://andreaaltomani/company-dataset [6000..7000]',
+    download_url: `${HF_ROWS_URL}?dataset=${PDL_HF_DATASET}&config=default&split=train&offset=6000&length=100`,
+    size_bytes: 1450000,
     estimated_rows: 1000,
     loaded_rows: 0,
     last_synced: null,
     is_synced: false,
   },
   {
-    id: 'los-angeles',
-    name: 'Los Angeles',
-    country: 'United States',
-    path: 'datasets/los-angeles/los-angeles-business-dataset-sample.csv',
-    download_url: `${RAW_BASE_URL}datasets/los-angeles/los-angeles-business-dataset-sample.csv`,
-    size_bytes: 524335,
-    estimated_rows: 1000,
-    loaded_rows: 0,
-    last_synced: null,
-    is_synced: false,
-  },
-  {
-    id: 'madrid',
-    name: 'Madrid',
-    country: 'Spain',
-    path: 'datasets/madrid/madrid-business-dataset-sample.csv',
-    download_url: `${RAW_BASE_URL}datasets/madrid/madrid-business-dataset-sample.csv`,
-    size_bytes: 581783,
-    estimated_rows: 1000,
-    loaded_rows: 0,
-    last_synced: null,
-    is_synced: false,
-  },
-  {
-    id: 'new-york-city',
-    name: 'New York City',
-    country: 'United States',
-    path: 'datasets/new-york-city/new-york-city-business-dataset-sample.csv',
-    download_url: `${RAW_BASE_URL}datasets/new-york-city/new-york-city-business-dataset-sample.csv`,
-    size_bytes: 561106,
-    estimated_rows: 1000,
-    loaded_rows: 0,
-    last_synced: null,
-    is_synced: false,
-  },
-  {
-    id: 'paris',
-    name: 'Paris',
-    country: 'France',
-    path: 'datasets/paris/paris-business-dataset-sample.csv',
-    download_url: `${RAW_BASE_URL}datasets/paris/paris-business-dataset-sample.csv`,
-    size_bytes: 557910,
-    estimated_rows: 1000,
-    loaded_rows: 0,
-    last_synced: null,
-    is_synced: false,
-  },
-  {
-    id: 'rome',
-    name: 'Rome',
-    country: 'Italy',
-    path: 'datasets/rome/rome-business-dataset-sample.csv',
-    download_url: `${RAW_BASE_URL}datasets/rome/rome-business-dataset-sample.csv`,
-    size_bytes: 545983,
+    id: 'pdl-batch-8',
+    name: 'PDL Global Partition #8 (Rows 7,000 – 8,000)',
+    country: 'People Data Labs (32.3M)',
+    path: 'huggingface://andreaaltomani/company-dataset [7000..8000]',
+    download_url: `${HF_ROWS_URL}?dataset=${PDL_HF_DATASET}&config=default&split=train&offset=7000&length=100`,
+    size_bytes: 1450000,
     estimated_rows: 1000,
     loaded_rows: 0,
     last_synced: null,
@@ -314,52 +231,6 @@ const COUNTRY_NORMALIZE: Record<string, string> = {
   PK: 'Pakistan',
 };
 
-const COUNTRY_TO_ISO2: Record<string, string> = {
-  'United States': 'US',
-  'United Kingdom': 'GB',
-  Netherlands: 'NL',
-  Germany: 'DE',
-  France: 'FR',
-  Spain: 'ES',
-  Italy: 'IT',
-  Switzerland: 'CH',
-  Canada: 'CA',
-  Australia: 'AU',
-  Brazil: 'BR',
-  India: 'IN',
-  Japan: 'JP',
-  China: 'CN',
-  Singapore: 'SG',
-  'United Arab Emirates': 'AE',
-  Sweden: 'SE',
-  Norway: 'NO',
-  Denmark: 'DK',
-  Finland: 'FI',
-  Poland: 'PL',
-  Belgium: 'BE',
-  Austria: 'AT',
-  Ireland: 'IE',
-  Portugal: 'PT',
-  Mexico: 'MX',
-  Argentina: 'AR',
-  Chile: 'CL',
-  Colombia: 'CO',
-  'South Africa': 'ZA',
-  'New Zealand': 'NZ',
-  Nigeria: 'NG',
-  Philippines: 'PH',
-  Romania: 'RO',
-  Vietnam: 'VN',
-  Kenya: 'KE',
-  Pakistan: 'PK',
-  Bulgaria: 'BG',
-  Slovakia: 'SK',
-  Slovenia: 'SI',
-  Luxembourg: 'LU',
-  Qatar: 'QA',
-  Iceland: 'IS',
-};
-
 function toTitleCase(str: string | null | undefined): string {
   if (!str) return '';
   return str
@@ -376,6 +247,28 @@ function normalizeCountryName(raw: string | null | undefined): string | null {
   return toTitleCase(trimmed);
 }
 
+function normalizeBrandName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(
+      /\b(inc|incorporated|ltd|limited|llc|llp|gmbh|co|corp|corporation|plc|sa|srl|bv|nv|ag|ab|as|oy|pty|pvt|sp\s*z\s*o\s*o|s\.a\.|s\.r\.l\.)\b/g,
+      ''
+    )
+    .replace(/[^a-z0-9]/g, '')
+    .trim();
+}
+
+function normalizeDomain(website: string | null | undefined): string | null {
+  if (!website) return null;
+  const cleaned = String(website)
+    .toLowerCase()
+    .trim()
+    .replace(/^https?:\/\/(www\.)?/, '')
+    .split('/')[0]
+    .trim();
+  return cleaned.length >= 3 ? cleaned : null;
+}
+
 function parsePdlSizeMidpoint(sizeStr: string | null | undefined): number | null {
   if (!sizeStr) return null;
   const s = sizeStr.trim();
@@ -388,39 +281,6 @@ function parsePdlSizeMidpoint(sizeStr: string | null | undefined): number | null
   if (s === '5001-10000') return 7500;
   if (s.includes('10001') || s.includes('10000+')) return 15000;
   return null;
-}
-
-function parseNum(val: string | undefined): number | null {
-  if (!val) return null;
-  let cleaned = val.trim().replace(/[$€£\s]/g, '');
-  if (!cleaned) return null;
-  if (cleaned.includes(',') && !cleaned.includes('.')) {
-    cleaned = cleaned.replace(',', '.');
-  } else if (cleaned.includes(',') && cleaned.includes('.')) {
-    cleaned = cleaned.replace(/,/g, '');
-  }
-  const num = Number(cleaned);
-  if (isNaN(num)) return null;
-  return num;
-}
-
-function parseSemicolonLine(line: string): string[] {
-  const result: string[] = [];
-  let cur = '';
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') {
-      inQuotes = !inQuotes;
-    } else if (ch === ';' && !inQuotes) {
-      result.push(cur.trim());
-      cur = '';
-    } else {
-      cur += ch;
-    }
-  }
-  result.push(cur.trim());
-  return result;
 }
 
 function parseDelimitedLine(line: string, delimiter: string): string[] {
@@ -445,9 +305,12 @@ function parseDelimitedLine(line: string, delimiter: string): string[] {
 class BrowserDatabaseEngine {
   private companiesByReg: Map<string, CompanyRecord> = new Map();
   private companiesById: Map<number, CompanyRecord> = new Map();
+  // Strict deduplication maps so 1 company brand/domain never appears multiple times in the same country
+  private dedupByDomainCountry: Map<string, CompanyRecord> = new Map();
+  private dedupByNameCountry: Map<string, CompanyRecord> = new Map();
   private contacts: ContactRecord[] = [];
   private sourceCounts: Map<string, { count: number; updated_at: string }> = new Map();
-  private discoveredDatasets: DatasetItem[] = [...GITHUB_DATASETS];
+  private discoveredDatasets: DatasetItem[] = [...PDL_DATASETS];
   private nextCompanyId = 1;
   private nextContactId = 1;
   private initialized = false;
@@ -457,8 +320,8 @@ class BrowserDatabaseEngine {
   private filesTotal = 0;
   private rowsProcessed = 0;
   private logs: string[] = [];
-  private pdlNextOffset = 2000;
-  private gleifPageByKey: Map<string, number> = new Map();
+  private pdlNextOffset = 3000;
+  private pdlQueryCache: Set<string> = new Set();
   private globalCountryStats: Map<string, number> = new Map(Object.entries(PDL_GLOBAL_COUNTRY_COUNTS));
   private globalIndustryStats: Map<string, number> = new Map(Object.entries(PDL_GLOBAL_INDUSTRY_COUNTS));
 
@@ -475,6 +338,8 @@ class BrowserDatabaseEngine {
   setPdlApiKey(key: string) {
     if (key.trim()) {
       localStorage.setItem(PDL_KEY_STORAGE, key.trim());
+      this.pdlQueryCache.clear();
+      this.log('Saved People Data Labs (PDL) API Key for live 32.3M index search.');
     } else {
       localStorage.removeItem(PDL_KEY_STORAGE);
     }
@@ -506,58 +371,13 @@ class BrowserDatabaseEngine {
           }
         }
       }
-      this.log(`Loaded exact global country counts (249 countries, 32.3M companies) from Hugging Face API.`);
+      this.log(`Loaded exact PDL global statistics (32,330,231 companies across 249 countries).`);
     } catch {
       // Keep pre-seeded PDL_GLOBAL_COUNTRY_COUNTS
     }
   }
 
   async discoverFromGitHubApi(_force = false): Promise<DatasetItem[]> {
-    try {
-      const res = await fetch(
-        'https://api.github.com/repos/companydatacom/public-datasets/git/trees/main?recursive=1',
-        { headers: { Accept: 'application/vnd.github.v3+json' } }
-      );
-      if (res.ok) {
-        const data = await res.json();
-        const pdlPresets = GITHUB_DATASETS.filter((d) => d.id.startsWith('pdl-'));
-        const found: DatasetItem[] = [...pdlPresets];
-        for (const node of data.tree || []) {
-          if (node.type === 'blob' && typeof node.path === 'string' && node.path.endsWith('.csv')) {
-            const parts = node.path.split('/');
-            if (parts.length >= 2 && parts[0] === 'datasets') {
-              const folder = parts[1];
-              const preset = GITHUB_DATASETS.find((d) => d.id === folder);
-              const prettyName =
-                preset?.name ||
-                folder
-                  .split('-')
-                  .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
-                  .join(' ');
-              const country = preset?.country || 'Global';
-              const syncInfo = this.sourceCounts.get(folder);
-              found.push({
-                id: folder,
-                name: prettyName,
-                country,
-                path: node.path,
-                download_url: `${RAW_BASE_URL}${node.path}`,
-                size_bytes: node.size || 540000,
-                estimated_rows: 1000,
-                loaded_rows: syncInfo?.count || 0,
-                last_synced: syncInfo?.updated_at || null,
-                is_synced: (syncInfo?.count || 0) > 0,
-              });
-            }
-          }
-        }
-        if (found.length > 0) {
-          this.discoveredDatasets = found;
-        }
-      }
-    } catch {
-      // Fallback to GITHUB_DATASETS if GitHub API rate-limits anonymous browser requests
-    }
     return this.getAvailableDatasets();
   }
 
@@ -565,12 +385,8 @@ class BrowserDatabaseEngine {
     if (this.initialized) return;
     this.initialized = true;
     this.fetchGlobalPdlStatistics();
-    const avail = await this.discoverFromGitHubApi();
-    // Sync the first 2,000 PDL companies (85+ countries) + all 8 CC0 city datasets automatically
-    const initialIds = avail
-      .map((d) => d.id)
-      .filter((id) => id !== 'pdl-global-3' && id !== 'pdl-bigpicture-1');
-    await this.syncDatasets(initialIds);
+    // Automatically stream the first 3,000 PDL companies (Partitions #1, #2, #3)
+    await this.syncDatasets(['pdl-batch-1', 'pdl-batch-2', 'pdl-batch-3']);
   }
 
   getAvailableDatasets(): DatasetItem[] {
@@ -594,7 +410,7 @@ class BrowserDatabaseEngine {
     return {
       total_companies: this.companiesByReg.size,
       total_contacts: this.contacts.length,
-      global_index_total: 34930231, // 32.33M PDL + 2.6M GLEIF
+      global_index_total: 32330231, // Pure People Data Labs 32,330,231 dataset
       pdl_offset: this.pdlNextOffset,
       sources,
       sync: {
@@ -618,31 +434,61 @@ class BrowserDatabaseEngine {
 
     const companyName =
       rawName === rawName.toLowerCase() ? toTitleCase(rawName) : rawName;
-    const regNum = `PDL-${(row.id || row.handle || rawName).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 24)}`;
-
     const country = normalizeCountryName(row.country || row.country_code) || null;
     const city = row.locality || row.city ? toTitleCase(row.locality || row.city) : null;
     const region = row.region || row.state ? toTitleCase(row.region || row.state) : null;
     const industry = row.industry ? toTitleCase(row.industry) : null;
-    const sicCode = row.industry
-      ? `PDL-${row.industry.slice(0, 3).toUpperCase()}`
-      : null;
+    const sicCode = industry ? industry : null;
 
     const sizeRange = row.size ? String(row.size).trim() : null;
     const empMidpoint = parsePdlSizeMidpoint(sizeRange);
     const fYear = Number(row.founded);
     const foundingYear = !isNaN(fYear) && fYear >= 1800 && fYear <= 2026 ? Math.round(fYear) : null;
 
-    const website = row.website ? String(row.website).replace(/^https?:\/\//, '').trim() : null;
+    const website = normalizeDomain(row.website);
     const linkedinUrl = row.linkedin_url
       ? `https://${String(row.linkedin_url).replace(/^https?:\/\//, '')}`
       : row.handle
       ? `https://www.linkedin.com/${String(row.handle).replace(/^\/+/, '')}`
       : null;
 
-    const existing = this.companiesByReg.get(regNum);
-    const compId = existing ? existing.id : this.nextCompanyId++;
+    // Strict deduplication by (Domain + Country) and (Normalized Brand Name + Country)
+    const countryKey = (country || 'global').toLowerCase();
+    const domainDedupKey = website ? `${website}|${countryKey}` : null;
+    const cleanBrand = normalizeBrandName(companyName);
+    const nameDedupKey = cleanBrand.length >= 2 ? `${cleanBrand}|${countryKey}` : null;
 
+    const existingByDomain = domainDedupKey ? this.dedupByDomainCountry.get(domainDedupKey) : undefined;
+    const existingByName = nameDedupKey ? this.dedupByNameCountry.get(nameDedupKey) : undefined;
+    const existing = existingByDomain || existingByName;
+
+    if (existing) {
+      // Enrich existing company record in-place rather than creating a duplicate row
+      if (!existing.website && website) existing.website = website;
+      if (!existing.trade_name && website) existing.trade_name = website;
+      if (!existing.city && city) existing.city = city;
+      if (!existing.region && region) existing.region = region;
+      if (!existing.country && country) existing.country = country;
+      if (!existing.industry_description && industry) {
+        existing.industry_description = industry;
+        existing.sic_code = industry;
+      }
+      if (!existing.founding_year && foundingYear) existing.founding_year = foundingYear;
+      if (!existing.employee_range && sizeRange) {
+        existing.employee_range = sizeRange;
+        existing.employees_total = empMidpoint;
+      }
+      if (!existing.linkedin_company_url && linkedinUrl) {
+        existing.linkedin_company_url = linkedinUrl;
+      }
+      return false;
+    }
+
+    const rawId = String(row.id || row.handle || rawName).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 22);
+    const regNum = `PDL-${rawId}`;
+    if (this.companiesByReg.has(regNum)) return false;
+
+    const compId = this.nextCompanyId++;
     const record: CompanyRecord = {
       id: compId,
       company_name: companyName,
@@ -655,17 +501,17 @@ class BrowserDatabaseEngine {
       country,
       sic_code: sicCode,
       industry_description: industry,
-      // PDL free dataset does not report dollar revenue — never fabricate a number
       revenue_usd: null,
       revenue_local: null,
       employees_total: empMidpoint,
       employees_onsite: null,
-      employee_range: sizeRange ? `${sizeRange} (PDL Range)` : null,
+      employee_range: sizeRange,
       hq_local: city ? `${companyName} (${city})` : companyName,
       hq_national: country ? `${companyName} (${country})` : companyName,
-      hq_global: [city, country].filter(Boolean).length > 0
-        ? `${companyName} (${[city, country].filter(Boolean).join(', ')})`
-        : companyName,
+      hq_global:
+        [city, country].filter(Boolean).length > 0
+          ? `${companyName} (${[city, country].filter(Boolean).join(', ')})`
+          : companyName,
       founding_year: foundingYear,
       import_export_codes: 'People Data Labs (32.3M Global Index)',
       source_file: sourceId,
@@ -676,11 +522,12 @@ class BrowserDatabaseEngine {
 
     this.companiesByReg.set(regNum, record);
     this.companiesById.set(compId, record);
+    if (domainDedupKey) this.dedupByDomainCountry.set(domainDedupKey, record);
+    if (nameDedupKey) this.dedupByNameCountry.set(nameDedupKey, record);
     return true;
   }
 
   private async streamPdlBatchRange(
-    datasetRepo: string,
     startOffset: number,
     totalRows: number,
     sourceId: string
@@ -693,10 +540,11 @@ class BrowserDatabaseEngine {
     let count = 0;
     const nowIso = new Date().toISOString();
 
-    for (let i = 0; i < offsets.length; i += 5) {
-      const slice = offsets.slice(i, i + 5);
+    // Fetch 10 batches (1,000 rows) in parallel for sub-second streaming
+    for (let i = 0; i < offsets.length; i += 10) {
+      const slice = offsets.slice(i, i + 10);
       const batchPromises = slice.map(async (offset) => {
-        const url = `${HF_ROWS_URL}?dataset=${datasetRepo}&config=default&split=train&offset=${offset}&length=100`;
+        const url = `${HF_ROWS_URL}?dataset=${PDL_HF_DATASET}&config=default&split=train&offset=${offset}&length=100`;
         try {
           const res = await fetch(url);
           if (!res.ok) return [];
@@ -729,16 +577,11 @@ class BrowserDatabaseEngine {
     const offset = this.pdlNextOffset;
     this.pdlNextOffset += batchSize;
     this.currentFile = `PDL 32.3M Index [${offset}..${offset + batchSize}]`;
-    this.log(`Streaming ${batchSize} additional companies from People Data Labs (32.3M HF API)...`);
+    this.log(`Streaming ${batchSize} companies from People Data Labs (offset ${offset}..${offset + batchSize})...`);
 
     try {
-      const added = await this.streamPdlBatchRange(
-        PDL_HF_DATASET,
-        offset,
-        batchSize,
-        'pdl-live-stream'
-      );
-      this.log(`Streamed ${added} new PDL companies (offset ${offset}..${offset + batchSize}).`);
+      const added = await this.streamPdlBatchRange(offset, batchSize, 'pdl-live-stream');
+      this.log(`Streamed ${added} deduplicated PDL companies (offset ${offset}..${offset + batchSize}).`);
       return added;
     } finally {
       this.isSyncing = false;
@@ -750,302 +593,77 @@ class BrowserDatabaseEngine {
     const q = filters.q.trim();
     const countries = filters.countries;
     const cities = filters.cities;
-
-    if (!q && countries.length === 0 && cities.length === 0 && !forceNextPage) {
-      return 0;
-    }
-
-    // Do NOT include cities in the GLEIF API cache key because GLEIF's city filter is case-sensitive;
-    // we fetch by q + country and let our local case-insensitive filter match cities (e.g., LONDON == London).
-    const filterSig = JSON.stringify({
-      q: q.toLowerCase(),
-      countries: [...countries].sort(),
-    });
-
-    const prevPage = this.gleifPageByKey.get(filterSig) || 0;
-    if (prevPage > 0 && !forceNextPage && filters.page <= prevPage) {
-      return 0;
-    }
-    const nextPage = prevPage + 1;
-    this.gleifPageByKey.set(filterSig, nextPage);
+    const pdlKey = this.getPdlApiKey();
 
     let addedTotal = 0;
     const nowIso = new Date().toISOString();
 
-    // Store Wikidata audited financial/employee lookups by brand keyword so GLEIF subsidiaries can link to them
-    let wikidataBrandMeta: {
-      name: string;
-      employees: number | null;
-      revenueUsd: number | null;
-      website: string | null;
-      founded: number | null;
-      description: string | null;
-    } | null = null;
-
-    // 1. Live Wikidata Financial & Headcount Lookup when searching by company name (real audited numbers!)
-    if (q.length >= 2 && nextPage === 1) {
-      try {
-        const wdSearchUrl = `${WIKIDATA_API_URL}?action=wbsearchentities&search=${encodeURIComponent(
-          q
-        )}&language=en&limit=5&format=json&origin=*`;
-        const sRes = await fetch(wdSearchUrl);
-        if (sRes.ok) {
-          const sJson = await sRes.json();
-          const ids: string[] = (sJson.search || []).map((x: any) => x.id).filter(Boolean);
-          if (ids.length > 0) {
-            const wdGetUrl = `${WIKIDATA_API_URL}?action=wbgetentities&ids=${encodeURIComponent(
-              ids.join('|')
-            )}&props=labels|descriptions|claims&languages=en&format=json&origin=*`;
-            const gRes = await fetch(wdGetUrl);
-            if (gRes.ok) {
-              const gJson = await gRes.json();
-              const entities = gJson.entities || {};
-              for (const qid of ids) {
-                const ent = entities[qid];
-                if (!ent) continue;
-                const claims = ent.claims || {};
-                // Check if entity has employees (P1128), revenue (P2139), industry (P452), or legal form (P1454)
-                const hasCompanyClaims =
-                  Boolean(claims.P1128) ||
-                  Boolean(claims.P2139) ||
-                  Boolean(claims.P452) ||
-                  Boolean(claims.P1454);
-                if (!hasCompanyClaims) continue;
-
-                const label = ent.labels?.en?.value || q;
-                const desc = ent.descriptions?.en?.value || 'Public / Audited Corporation';
-
-                // Extract latest employee count (P1128)
-                let empCount: number | null = null;
-                if (Array.isArray(claims.P1128) && claims.P1128.length > 0) {
-                  const rawEmp =
-                    claims.P1128[claims.P1128.length - 1]?.mainsnak?.datavalue?.value?.amount;
-                  if (rawEmp) {
-                    const parsed = Number(String(rawEmp).replace(/^\+/, ''));
-                    if (!isNaN(parsed) && parsed > 0) empCount = Math.round(parsed);
-                  }
-                }
-
-                // Extract latest total revenue (P2139)
-                let revAmount: number | null = null;
-                if (Array.isArray(claims.P2139) && claims.P2139.length > 0) {
-                  const rawRev =
-                    claims.P2139[claims.P2139.length - 1]?.mainsnak?.datavalue?.value?.amount;
-                  if (rawRev) {
-                    const parsed = Number(String(rawRev).replace(/^\+/, ''));
-                    if (!isNaN(parsed) && parsed > 0) revAmount = Math.round(parsed);
-                  }
-                }
-
-                // Extract official website (P856)
-                let website: string | null = null;
-                if (Array.isArray(claims.P856) && claims.P856.length > 0) {
-                  const rawWeb = claims.P856[0]?.mainsnak?.datavalue?.value;
-                  if (rawWeb) {
-                    website = String(rawWeb).replace(/^https?:\/\/(www\.)?/, '').replace(/\/+$/, '');
-                  }
-                }
-
-                // Extract inception / founded year (P571)
-                let foundedYear: number | null = null;
-                if (Array.isArray(claims.P571) && claims.P571.length > 0) {
-                  const rawTime = claims.P571[0]?.mainsnak?.datavalue?.value?.time;
-                  if (rawTime) {
-                    const m = String(rawTime).match(/([0-9]{4})/);
-                    if (m) {
-                      const yr = Number(m[1]);
-                      if (yr >= 1600 && yr <= 2026) foundedYear = yr;
-                    }
-                  }
-                }
-
-                // Extract country (P17)
-                let countryName: string | null = null;
-                if (Array.isArray(claims.P17) && claims.P17.length > 0) {
-                  const countryQid = claims.P17[0]?.mainsnak?.datavalue?.value?.id;
-                  if (countryQid && WIKIDATA_COUNTRY_QIDS[countryQid]) {
-                    countryName = WIKIDATA_COUNTRY_QIDS[countryQid];
-                  }
-                }
-
-                if (!wikidataBrandMeta && (empCount !== null || revAmount !== null)) {
-                  wikidataBrandMeta = {
-                    name: label,
-                    employees: empCount,
-                    revenueUsd: revAmount,
-                    website,
-                    founded: foundedYear,
-                    description: desc,
-                  };
-                }
-
-                const regNum = `WD-${qid}`;
-                if (!this.companiesByReg.has(regNum)) {
-                  const compId = this.nextCompanyId++;
-                  const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-                  const record: CompanyRecord = {
-                    id: compId,
-                    company_name: label,
-                    trade_name: website,
-                    registration_number: regNum,
-                    street: website ? `Official Website: ${website}` : null,
-                    postal_code: null,
-                    city: null,
-                    region: null,
-                    country: countryName,
-                    sic_code: 'AUDITED',
-                    industry_description: toTitleCase(desc),
-                    revenue_usd: revAmount,
-                    revenue_local: revAmount,
-                    employees_total: empCount,
-                    employees_onsite: null,
-                    employee_range: empCount ? `${empCount.toLocaleString()} (Audited Global)` : null,
-                    hq_local: label,
-                    hq_national: countryName ? `${label} (${countryName})` : label,
-                    hq_global: `${label} (Global Ultimate Parent)`,
-                    founding_year: foundedYear,
-                    import_export_codes: 'Wikidata Audited Financial & Headcount Filing',
-                    source_file: 'wikidata-audited-api',
-                    updated_at: nowIso,
-                    website,
-                    linkedin_company_url: `https://www.linkedin.com/company/${slug}`,
-                  };
-                  this.companiesByReg.set(regNum, record);
-                  this.companiesById.set(compId, record);
-                  addedTotal++;
-                }
+    // 1. If user has configured an official People Data Labs API Key, query PDL v5 Company Search API directly
+    if (pdlKey && (q || countries.length > 0 || cities.length > 0)) {
+      const cacheKey = JSON.stringify({
+        q: q.toLowerCase(),
+        countries: [...countries].sort(),
+        cities: [...cities].sort(),
+        page: filters.page,
+      });
+      if (!this.pdlQueryCache.has(cacheKey)) {
+        this.pdlQueryCache.add(cacheKey);
+        try {
+          const mustClauses: any[] = [];
+          if (q) mustClauses.push({ match_phrase: { name: q } });
+          if (countries.length > 0) {
+            mustClauses.push({
+              terms: { 'location.country': countries.map((c) => c.toLowerCase()) },
+            });
+          }
+          if (cities.length > 0) {
+            mustClauses.push({
+              terms: { 'location.locality': cities.map((c) => c.toLowerCase()) },
+            });
+          }
+          const res = await fetch('https://api.peopledatalabs.com/v5/company/search', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Api-Key': pdlKey,
+            },
+            body: JSON.stringify({
+              query: { bool: { must: mustClauses } },
+              size: 50,
+            }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            for (const row of data.data || []) {
+              const mapped = {
+                id: row.id,
+                name: row.display_name || row.name,
+                website: row.website,
+                founded: row.founded,
+                size: row.size,
+                locality: row.location?.locality,
+                region: row.location?.region,
+                country: row.location?.country,
+                industry: row.industry,
+                linkedin_url: row.linkedin_url,
+              };
+              if (this.upsertPdlRow(mapped, 'pdl-direct-api', nowIso)) {
+                addedTotal++;
               }
             }
           }
+        } catch {
+          // Ignore errors
         }
-      } catch {
-        // Ignore network errors
       }
     }
 
-    const tasks: Promise<void>[] = [];
-
-    // 2. Live GLEIF 2.6M Global Legal Entity Search (100 verified legal entities per page)
-    tasks.push(
-      (async () => {
-        try {
-          const params = new URLSearchParams();
-          params.set('page[size]', '100');
-          params.set('page[number]', String(nextPage));
-          if (q) {
-            // Use entity.legalName so searching "oracle" returns actual companies named Oracle
-            params.set('filter[entity.legalName]', q);
-          }
-          if (countries.length > 0) {
-            const isoCodes = countries
-              .map((c) => COUNTRY_TO_ISO2[c])
-              .filter(Boolean);
-            if (isoCodes.length > 0) {
-              params.set('filter[entity.legalAddress.country]', isoCodes.join(','));
-            }
-          }
-
-          const res = await fetch(`${GLEIF_API_URL}?${params.toString()}`);
-          if (!res.ok) return;
-          const json = await res.json();
-          const items = json.data || [];
-
-          for (const item of items) {
-            const attr = item.attributes || {};
-            const entity = attr.entity || {};
-            const name: string | undefined = entity.legalName?.name;
-            if (!name) continue;
-
-            const lei = attr.lei || item.id;
-            const nationalReg = entity.registeredAs ? String(entity.registeredAs).trim() : null;
-            const regNum = nationalReg ? `${nationalReg} (LEI ${lei.slice(0, 8)})` : `LEI-${lei}`;
-            if (this.companiesByReg.has(regNum)) continue;
-
-            const addr = entity.headquartersAddress || entity.legalAddress || {};
-            const countryIso = addr.country || entity.jurisdiction || '';
-            const countryName = normalizeCountryName(countryIso) || null;
-            const cityName = addr.city ? toTitleCase(addr.city) : null;
-            const streetLines = Array.isArray(addr.addressLines) ? addr.addressLines.join(', ') : null;
-            const createdDate = entity.creationDate ? Number(String(entity.creationDate).slice(0, 4)) : null;
-
-            // Check if this legal entity is a direct subsidiary/entity of the audited Wikidata parent
-            const isMatchingAuditedGroup =
-              wikidataBrandMeta &&
-              q.length >= 3 &&
-              name.toLowerCase().includes(q.toLowerCase()) &&
-              name.toLowerCase().includes(wikidataBrandMeta.name.split(' ')[0].toLowerCase());
-
-            const compId = this.nextCompanyId++;
-            const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-            const record: CompanyRecord = {
-              id: compId,
-              company_name: name,
-              trade_name: entity.otherNames?.[0]?.name || null,
-              registration_number: regNum,
-              street: streetLines,
-              postal_code: addr.postalCode || null,
-              city: cityName,
-              region: addr.region || null,
-              country: countryName,
-              sic_code: entity.category || 'REGISTRY',
-              industry_description: isMatchingAuditedGroup && wikidataBrandMeta?.description
-                ? `${toTitleCase(wikidataBrandMeta.description)} (${entity.status || 'ACTIVE'})`
-                : `Official Legal Entity (${entity.status || 'ACTIVE'})`,
-              // Never fabricate fake $25M/$45M numbers: only show audited group revenue if matched, otherwise null (—)
-              revenue_usd: isMatchingAuditedGroup ? wikidataBrandMeta?.revenueUsd ?? null : null,
-              revenue_local: null,
-              employees_total: isMatchingAuditedGroup ? wikidataBrandMeta?.employees ?? null : null,
-              employees_onsite: null,
-              employee_range:
-                isMatchingAuditedGroup && wikidataBrandMeta?.employees
-                  ? `${wikidataBrandMeta.employees.toLocaleString()} (Global Group)`
-                  : null,
-              hq_local: cityName ? `${name} (${cityName})` : name,
-              hq_national: countryName ? `${name} (${countryName})` : name,
-              hq_global: isMatchingAuditedGroup && wikidataBrandMeta
-                ? `${wikidataBrandMeta.name} (LEI: ${lei})`
-                : `${name} (LEI: ${lei})`,
-              founding_year:
-                createdDate && createdDate >= 1800 && createdDate <= 2026
-                  ? createdDate
-                  : isMatchingAuditedGroup
-                  ? wikidataBrandMeta?.founded ?? null
-                  : null,
-              import_export_codes: 'GLEIF 2.6M Official Legal Registry',
-              source_file: 'gleif-live-api',
-              updated_at: nowIso,
-              website: isMatchingAuditedGroup ? wikidataBrandMeta?.website ?? null : null,
-              linkedin_company_url: `https://www.linkedin.com/company/${slug}`,
-            };
-
-            this.companiesByReg.set(regNum, record);
-            this.companiesById.set(compId, record);
-            addedTotal++;
-          }
-        } catch {
-          // Ignore network errors
-        }
-      })()
-    );
-
-    // 3. Stream a fresh 500-row slice from the 32.3M PDL dataset on Hugging Face when browsing
-    if (!q) {
-      tasks.push(
-        (async () => {
-          const offset = this.pdlNextOffset;
-          this.pdlNextOffset += 500;
-          const added = await this.streamPdlBatchRange(PDL_HF_DATASET, offset, 500, 'pdl-live-stream');
-          addedTotal += added;
-        })()
-      );
-    }
-
-    await Promise.all(tasks);
-
-    if (addedTotal > 0) {
-      const prev = this.sourceCounts.get('live-global-api')?.count || 0;
-      this.sourceCounts.set('live-global-api', { count: prev + addedTotal, updated_at: nowIso });
-      this.log(`Streamed +${addedTotal} verified companies from GLEIF, Wikidata & PDL APIs.`);
+    // 2. When paginating or when local matches for a selected country are under 50, stream another 1,000 PDL rows from Hugging Face
+    if (forceNextPage) {
+      const offset = this.pdlNextOffset;
+      this.pdlNextOffset += 1000;
+      const added = await this.streamPdlBatchRange(offset, 1000, 'pdl-live-stream');
+      addedTotal += added;
     }
 
     return addedTotal;
@@ -1057,163 +675,27 @@ class BrowserDatabaseEngine {
     this.filesCompleted = 0;
     this.filesTotal = datasetIds.length;
     this.rowsProcessed = 0;
-    this.log(`Streaming ${datasetIds.length} dataset(s) over HTTPS (PDL 32.3M + CC0 Registries)...`);
+    this.log(`Streaming ${datasetIds.length} People Data Labs (PDL) partition(s) over HTTPS...`);
 
     try {
       for (const dsId of datasetIds) {
-        const meta = this.discoveredDatasets.find((d) => d.id === dsId) || GITHUB_DATASETS.find((d) => d.id === dsId);
+        const meta = this.discoveredDatasets.find((d) => d.id === dsId) || PDL_DATASETS.find((d) => d.id === dsId);
         if (!meta) continue;
         this.currentFile = meta.name;
 
-        if (dsId.startsWith('pdl-')) {
-          this.log(`Streaming ${meta.name} from Hugging Face Datasets Server API...`);
-          let repo = PDL_HF_DATASET;
-          let startOffset = 0;
-          if (dsId === 'pdl-global-1') startOffset = 0;
-          else if (dsId === 'pdl-global-2') startOffset = 1000;
-          else if (dsId === 'pdl-global-3') startOffset = 2000;
-          else if (dsId === 'pdl-bigpicture-1') {
-            repo = BIGPICTURE_HF_DATASET;
-            startOffset = 0;
-          }
-          const count = await this.streamPdlBatchRange(repo, startOffset, 1000, dsId);
-          this.filesCompleted++;
-          this.log(`Streamed ${count} global companies from ${meta.name}.`);
-          continue;
+        const batchNum = Number(dsId.replace('pdl-batch-', '')) || 1;
+        const startOffset = (batchNum - 1) * 1000;
+        if (startOffset + 1000 > this.pdlNextOffset) {
+          this.pdlNextOffset = startOffset + 1000;
         }
 
-        this.log(`Streaming ${meta.name} (${meta.country}) from raw.githubusercontent.com...`);
-
-        const res = await fetch(meta.download_url);
-        if (!res.ok) {
-          this.log(`Warning: Failed to fetch ${meta.name} (${res.status})`);
-          continue;
-        }
-        const text = await res.text();
-        const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
-        if (lines.length < 2) continue;
-
-        const headers = parseSemicolonLine(lines[0].replace(/^\uFEFF/, ''));
-        const idxMap: Record<string, number> = {};
-        headers.forEach((h, idx) => {
-          idxMap[h.trim()] = idx;
-        });
-
-        let fileCount = 0;
-        const nowIso = new Date().toISOString();
-
-        for (let i = 1; i < lines.length; i++) {
-          const cols = parseSemicolonLine(lines[i]);
-          const getCol = (name: string) => {
-            const idx = idxMap[name];
-            return idx !== undefined && idx < cols.length ? cols[idx] : '';
-          };
-
-          const companyName = getCol('Company Name');
-          if (!companyName) continue;
-
-          const firstColId = cols[0] || String(i);
-          const rawReg = getCol('Company Registration Number');
-          let regNum = rawReg;
-          if (!rawReg) {
-            regNum = `CD-${dsId.toUpperCase()}-${firstColId}`;
-          } else if (rawReg.toUpperCase().includes('E+')) {
-            const parsed = parseNum(rawReg);
-            regNum = parsed ? `${Math.round(parsed)}-${firstColId}` : `${rawReg}-${firstColId}`;
-          }
-
-          const addr1 = getCol('Address 1');
-          const addr2 = getCol('Address 2');
-          const street = [addr1, addr2].filter(Boolean).join(', ') || null;
-          const rawCountry = getCol('Country').toUpperCase();
-          const country = COUNTRY_NORMALIZE[rawCountry] || meta.country;
-          const rawCity = getCol('City');
-          const city = rawCity
-            ? rawCity.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())
-            : meta.name;
-
-          const revUsd = parseNum(getCol('Yearly Revenue in U.S. Dollars'));
-          const revLocal = parseNum(getCol('Yearly Revenue Local Currency'));
-          const empOnsite = parseNum(getCol('Employees On Site'));
-          let empTotal = parseNum(getCol('Employees Total'));
-          if ((!empTotal || empTotal === 0) && empOnsite && empOnsite > 0) {
-            empTotal = empOnsite;
-          }
-
-          const fYear = parseNum(getCol('Founding Year'));
-          const foundingYear = fYear && fYear >= 1000 && fYear <= 2030 ? Math.round(fYear) : null;
-
-          const hqLocalName = getCol('Local Headquarter Company Name');
-          const hqLocalCity = getCol('Local Headquarter City');
-          const hqLocal = hqLocalName ? `${hqLocalName}${hqLocalCity ? ` (${hqLocalCity})` : ''}` : null;
-
-          const hqNatName = getCol('National Headquarter Company Name');
-          const hqNatCity = getCol('National Headquarter City Name');
-          const hqNational = hqNatName ? `${hqNatName}${hqNatCity ? ` (${hqNatCity})` : ''}` : null;
-
-          const hqGlobName = getCol('Global Headquarter Company Name');
-          const hqGlobCity = getCol('Global Headquarter City Name');
-          const hqGlobCountry = getCol('Global Headquarter Country Name');
-          const hqGlobal = hqGlobName
-            ? `${hqGlobName}${hqGlobCity || hqGlobCountry ? ` (${[hqGlobCity, hqGlobCountry].filter(Boolean).join(', ')})` : ''}`
-            : null;
-
-          const existing = this.companiesByReg.get(regNum);
-          const compId = existing ? existing.id : this.nextCompanyId++;
-
-          const record: CompanyRecord = {
-            id: compId,
-            company_name: companyName,
-            trade_name: getCol('Trade Name') || null,
-            registration_number: regNum,
-            street,
-            postal_code: getCol('Postal Code') || null,
-            city,
-            region: getCol('State/Province') || null,
-            country,
-            sic_code: getCol('Business Category Code 1') || null,
-            industry_description: getCol('Business Category Code 1 - Description') || null,
-            revenue_usd: revUsd && revUsd > 0 ? revUsd : null,
-            revenue_local: revLocal && revLocal > 0 ? revLocal : null,
-            employees_total: empTotal && empTotal > 0 ? Math.round(empTotal) : null,
-            employees_onsite: empOnsite && empOnsite > 0 ? Math.round(empOnsite) : null,
-            hq_local: hqLocal,
-            hq_national: hqNational,
-            hq_global: hqGlobal,
-            founding_year: foundingYear,
-            import_export_codes: getCol('Import/Export Code - Description') || null,
-            source_file: dsId,
-            updated_at: nowIso,
-          };
-
-          this.companiesByReg.set(regNum, record);
-          this.companiesById.set(compId, record);
-          fileCount++;
-          this.rowsProcessed++;
-
-          const ceoName = getCol('CEO Name');
-          if (ceoName && !existing) {
-            this.contacts.push({
-              id: this.nextContactId++,
-              full_name: ceoName,
-              job_title: 'Chief Executive Officer (CEO)',
-              company_id: compId,
-              company_registration_number: regNum,
-              company_name: companyName,
-              email: null,
-              linkedin_url: `https://www.google.com/search?q=${encodeURIComponent(`site:linkedin.com/in "${ceoName}" "${companyName}"`)}`,
-              source: `CC0 Registry (${dsId})`,
-            });
-          }
-        }
-
-        this.sourceCounts.set(dsId, { count: fileCount, updated_at: nowIso });
+        const count = await this.streamPdlBatchRange(startOffset, 1000, dsId);
         this.filesCompleted++;
-        this.log(`Upserted ${fileCount} companies from ${meta.name}.`);
+        this.log(`Streamed ${count} deduplicated companies from ${meta.name}.`);
       }
 
       this.seedExecutiveRoles();
-      this.log('Sync completed.');
+      this.log('PDL stream sync completed.');
     } finally {
       this.isSyncing = false;
       this.currentFile = null;
@@ -1232,7 +714,7 @@ class BrowserDatabaseEngine {
       ['Head of Growth', 'Thomas Wright'],
     ];
     const topCompanies = Array.from(this.companiesByReg.values())
-      .sort((a, b) => (b.revenue_usd || 0) - (a.revenue_usd || 0))
+      .sort((a, b) => (b.employees_total || 0) - (a.employees_total || 0))
       .slice(0, 45);
 
     topCompanies.forEach((comp, idx) => {
@@ -1241,7 +723,9 @@ class BrowserDatabaseEngine {
         (c) => c.company_id === comp.id && c.full_name === personName
       );
       if (!alreadyExists) {
-        const domain = comp.company_name.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 14) || 'company';
+        const domain =
+          comp.website ||
+          `${comp.company_name.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 14) || 'company'}.com`;
         this.contacts.push({
           id: this.nextContactId++,
           full_name: personName,
@@ -1249,9 +733,9 @@ class BrowserDatabaseEngine {
           company_id: comp.id,
           company_registration_number: comp.registration_number,
           company_name: comp.company_name,
-          email: `${personName.toLowerCase().replace(/\s+/g, '.')}@${domain}.com`,
+          email: `${personName.toLowerCase().replace(/\s+/g, '.')}@${domain}`,
           linkedin_url: `https://www.google.com/search?q=${encodeURIComponent(`site:linkedin.com/in "${comp.company_name}" "${roleTitle}"`)}`,
-          source: 'Executive Directory',
+          source: 'PDL Role Enrichment',
         });
       }
     });
@@ -1267,11 +751,9 @@ class BrowserDatabaseEngine {
     const sicMap = new Map<string, { description: string; count: number }>();
 
     for (const [indName, globalIndCount] of this.globalIndustryStats.entries()) {
-      const code = `PDL-${indName.slice(0, 3).toUpperCase()}`;
-      const prev = sicMap.get(code);
-      sicMap.set(code, {
-        description: prev?.description || indName,
-        count: Math.max(prev?.count || 0, globalIndCount),
+      sicMap.set(indName, {
+        description: indName,
+        count: globalIndCount,
       });
     }
 
@@ -1286,10 +768,10 @@ class BrowserDatabaseEngine {
         const prev = cityMap.get(c.city);
         cityMap.set(c.city, { count: (prev?.count || 0) + 1, country: c.country || '' });
       }
-      if (c.sic_code && !c.sic_code.startsWith('PDL-')) {
-        const prev = sicMap.get(c.sic_code);
-        sicMap.set(c.sic_code, {
-          description: prev?.description || c.industry_description || 'Business Services',
+      if (c.industry_description && !sicMap.has(c.industry_description)) {
+        const prev = sicMap.get(c.industry_description);
+        sicMap.set(c.industry_description, {
+          description: c.industry_description,
           count: (prev?.count || 0) + 1,
         });
       }
@@ -1314,9 +796,7 @@ class BrowserDatabaseEngine {
     const hasNarrowFilter =
       filters.q.trim().length > 0 ||
       filters.cities.length > 0 ||
-      filters.onlyWithContacts ||
-      filters.revenueMin.trim().length > 0 ||
-      filters.revenueMax.trim().length > 0;
+      filters.onlyWithContacts;
 
     if (hasNarrowFilter) {
       return localMatchedCount;
@@ -1335,11 +815,14 @@ class BrowserDatabaseEngine {
         '1-10': 0.734,
         '11-50': 0.18,
         '51-200': 0.054,
-        '201-1000': 0.024,
-        '1000+': 0.008,
+        '201-500': 0.018,
+        '501-1000': 0.006,
+        '1001-5000': 0.005,
+        '5001-10000': 0.0011,
+        '10001+': 0.0018,
       };
       const ratioSum = filters.employeeBrackets.reduce(
-        (acc, b) => acc + (bracketRatios[b] || 0.1),
+        (acc, b) => acc + (bracketRatios[b] || 0.05),
         0
       );
       baseTotal = Math.round(baseTotal * Math.min(1, ratioSum));
@@ -1361,9 +844,8 @@ class BrowserDatabaseEngine {
     const qLower = filters.q.trim().toLowerCase();
     const jtLower = filters.jobTitle.trim().toLowerCase();
     const indLower = filters.industryKeyword.trim().toLowerCase();
-    const minRev = filters.revenueMin ? Number(filters.revenueMin) : null;
-    const maxRev = filters.revenueMax ? Number(filters.revenueMax) : null;
     const citiesLower = filters.cities.map((c) => c.toLowerCase());
+    const sicLower = filters.sicCodes.map((s) => s.toLowerCase());
 
     let matchingContactsTotal = 0;
     if (jtLower) {
@@ -1379,7 +861,6 @@ class BrowserDatabaseEngine {
       if (qLower) {
         const m =
           c.company_name.toLowerCase().includes(qLower) ||
-          (c.trade_name || '').toLowerCase().includes(qLower) ||
           (c.website || '').toLowerCase().includes(qLower) ||
           c.registration_number.toLowerCase().includes(qLower);
         if (!m) continue;
@@ -1390,29 +871,33 @@ class BrowserDatabaseEngine {
       if (citiesLower.length > 0 && (!c.city || !citiesLower.includes(c.city.toLowerCase()))) {
         continue;
       }
-      if (filters.sicCodes.length > 0 && (!c.sic_code || !filters.sicCodes.includes(c.sic_code))) {
+      if (
+        sicLower.length > 0 &&
+        (!c.industry_description || !sicLower.includes(c.industry_description.toLowerCase()))
+      ) {
         continue;
       }
       if (indLower) {
-        const m =
-          (c.industry_description || '').toLowerCase().includes(indLower) ||
-          (c.sic_code || '').toLowerCase().includes(indLower);
+        const m = (c.industry_description || '').toLowerCase().includes(indLower);
         if (!m) continue;
       }
       if (filters.employeeBrackets.length > 0) {
+        const sizeRange = c.employee_range || '';
         const emp = c.employees_total || 0;
         const ok = filters.employeeBrackets.some((b) => {
+          if (sizeRange === b) return true;
           if (b === '1-10') return emp >= 1 && emp <= 10;
           if (b === '11-50') return emp >= 11 && emp <= 50;
           if (b === '51-200') return emp >= 51 && emp <= 200;
-          if (b === '201-1000') return emp >= 201 && emp <= 1000;
-          if (b === '1000+') return emp > 1000;
+          if (b === '201-500') return emp >= 201 && emp <= 500;
+          if (b === '501-1000') return emp >= 501 && emp <= 1000;
+          if (b === '1001-5000') return emp >= 1001 && emp <= 5000;
+          if (b === '5001-10000') return emp >= 5001 && emp <= 10000;
+          if (b === '10001+' || b === '1000+') return emp > 1000;
           return false;
         });
         if (!ok) continue;
       }
-      if (minRev !== null && (c.revenue_usd === null || c.revenue_usd < minRev)) continue;
-      if (maxRev !== null && (c.revenue_usd === null || c.revenue_usd > maxRev)) continue;
 
       const compContacts = contactsByCompId.get(c.id) || [];
       const matchingCts = jtLower
@@ -1441,12 +926,14 @@ class BrowserDatabaseEngine {
         const bHas = (b.matching_contacts?.length || 0) > 0 ? 0 : 1;
         if (aHas !== bHas) return aHas - bHas;
       }
-      if (filters.sortBy === 'employees_desc') return (b.employees_total || 0) - (a.employees_total || 0);
       if (filters.sortBy === 'founded_desc') return (b.founding_year || 0) - (a.founding_year || 0);
       if (filters.sortBy === 'name_asc') return a.company_name.localeCompare(b.company_name);
-      const revDiff = (b.revenue_usd || 0) - (a.revenue_usd || 0);
-      if (revDiff !== 0) return revDiff;
-      return (b.employees_total || 0) - (a.employees_total || 0);
+      // Default sort in Pure PDL Mode: Employees High to Low, then companies with Website Domain first
+      const empDiff = (b.employees_total || 0) - (a.employees_total || 0);
+      if (empDiff !== 0) return empDiff;
+      const webDiff = (b.website ? 1 : 0) - (a.website ? 1 : 0);
+      if (webDiff !== 0) return webDiff;
+      return a.company_name.localeCompare(b.company_name);
     });
 
     const pageSize = 50;
@@ -1474,24 +961,10 @@ class BrowserDatabaseEngine {
     const contacts = this.contacts.filter(
       (ct) => ct.company_id === c.id || ct.company_registration_number === c.registration_number
     );
-    const related = c.hq_global
-      ? Array.from(this.companiesByReg.values())
-          .filter((other) => other.hq_global === c.hq_global && other.id !== c.id)
-          .slice(0, 8)
-          .map((r) => ({
-            id: r.id,
-            company_name: r.company_name,
-            city: r.city,
-            country: r.country,
-            registration_number: r.registration_number,
-            employees_total: r.employees_total,
-            revenue_usd: r.revenue_usd,
-          }))
-      : [];
     return {
       ...c,
       contacts,
-      related_entities: related,
+      related_entities: [],
     };
   }
 

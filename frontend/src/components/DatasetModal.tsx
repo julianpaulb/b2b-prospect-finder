@@ -12,6 +12,8 @@ import {
   AlertCircle,
   Loader2,
   Terminal,
+  Key,
+  ShieldCheck,
 } from 'lucide-react';
 import { DatasetItem, SyncStatusResponse } from '../types';
 import { formatNumber } from '../utils';
@@ -43,6 +45,8 @@ export const DatasetModal: React.FC<DatasetModalProps> = ({
     filename: string;
   } | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [pdlApiKey, setPdlApiKey] = useState<string>(() => browserDb.getPdlApiKey());
+  const [apiKeySaved, setApiKeySaved] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const fetchAvailable = async (force = false) => {
@@ -76,6 +80,7 @@ export const DatasetModal: React.FC<DatasetModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       fetchAvailable(false);
+      setPdlApiKey(browserDb.getPdlApiKey());
     }
   }, [isOpen]);
 
@@ -127,6 +132,12 @@ export const DatasetModal: React.FC<DatasetModalProps> = ({
     }
   };
 
+  const handleSaveApiKey = () => {
+    browserDb.setPdlApiKey(pdlApiKey);
+    setApiKeySaved(true);
+    setTimeout(() => setApiKeySaved(false), 2500);
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -176,17 +187,17 @@ export const DatasetModal: React.FC<DatasetModalProps> = ({
             </div>
             <div>
               <h2 className="text-base font-semibold tracking-tight">
-                Global Dataset Manager: People Data Labs (32.3M) + GLEIF (2.6M) + CC0
+                People Data Labs (PDL) Global Stream Manager — 32,330,231 Companies
               </h2>
               <p className="text-xs text-slate-400">
-                Direct HTTPS streaming from <code className="text-emerald-300">datasets-server.huggingface.co (32.3M PDL)</code>, <code className="text-blue-300">api.gleif.org (2.6M)</code> &amp; GitHub CC0
+                Single clean source via <code className="text-emerald-300">datasets-server.huggingface.co (andreaaltomani/company-dataset)</code> with strict domain + brand deduplication
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
             id="close-dataset-modal-btn"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -205,25 +216,25 @@ export const DatasetModal: React.FC<DatasetModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="p-4 rounded-lg bg-emerald-50/60 border border-emerald-200">
               <div className="text-xs font-medium text-emerald-800 uppercase tracking-wider">
-                Connected Global API Index
+                PDL Global API Index
               </div>
               <div className="mt-1 text-2xl font-bold font-mono text-emerald-900">
-                34,930,231+
+                32,330,231
               </div>
               <div className="mt-1 text-[11px] text-emerald-700">
-                32.3M PDL (HuggingFace API) + 2.6M GLEIF Live
+                Single clean source • Zero multi-source duplicates
               </div>
             </div>
 
             <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
               <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-                Loaded in Active Workspace
+                Unique Companies in RAM
               </div>
               <div className="mt-1 text-2xl font-bold font-mono text-slate-900">
                 {formatNumber(syncStatus?.total_companies || 0)}
               </div>
               <div className="mt-1 text-[11px] text-slate-500">
-                Companies across 85+ countries ready for instant filter
+                Deduplicated by domain + brand name per market
               </div>
             </div>
 
@@ -247,7 +258,7 @@ export const DatasetModal: React.FC<DatasetModalProps> = ({
                 </button>
               </div>
               <div className="mt-1.5 text-[10px] text-slate-500 text-center">
-                Current PDL offset: {formatNumber(syncStatus?.pdl_offset || 2000)} / 32,330,231
+                Current PDL offset: {formatNumber(syncStatus?.pdl_offset || 3000)} / 32,330,231
               </div>
             </div>
           </div>
@@ -257,11 +268,11 @@ export const DatasetModal: React.FC<DatasetModalProps> = ({
             <div className="rounded-lg bg-slate-900 text-slate-200 p-3.5 border border-slate-800 font-mono text-xs">
               <div className="flex items-center justify-between mb-2 text-slate-400 border-b border-slate-800 pb-1.5">
                 <span className="flex items-center gap-1.5 font-semibold text-[11px] uppercase tracking-wider">
-                  <Terminal className="w-3.5 h-3.5 text-blue-400" /> Live HTTPS Stream Log
+                  <Terminal className="w-3.5 h-3.5 text-blue-400" /> Live PDL HTTPS Stream Log
                 </span>
                 {isRunning && (
                   <span className="text-[11px] text-blue-400 animate-pulse">
-                    Batch Upserting to PostgreSQL...
+                    Streaming & Deduplicating PDL Partitions...
                   </span>
                 )}
               </div>
@@ -275,32 +286,64 @@ export const DatasetModal: React.FC<DatasetModalProps> = ({
             </div>
           )}
 
-          {/* Available GitHub Datasets Section */}
+          {/* Optional Direct PDL API Key Section */}
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <div className="flex items-center justify-between mb-1.5">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                <Key className="w-3.5 h-3.5 text-blue-600" />
+                Optional: Official People Data Labs API Key (Direct Full-Index Search)
+              </h3>
+              <span className="text-[11px] text-emerald-700 font-medium flex items-center gap-1">
+                <ShieldCheck className="w-3.5 h-3.5" /> Stored locally in browser only
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mb-3">
+              By default, this app streams partitions from the free Hugging Face mirror (<code className="text-slate-700">andreaaltomani/company-dataset</code>). If you have a free or commercial API key from <a href="https://www.peopledatalabs.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">peopledatalabs.com</a>, paste it below to query <code className="text-slate-700">api.peopledatalabs.com/v5/company/search</code> across all 32.3M rows in 1 request.
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="password"
+                value={pdlApiKey}
+                onChange={(e) => setPdlApiKey(e.target.value)}
+                placeholder="Paste optional PDL API Key (X-Api-Key)..."
+                className="flex-1 px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                type="button"
+                onClick={handleSaveApiKey}
+                className="px-4 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition-colors cursor-pointer"
+              >
+                {apiKeySaved ? 'Saved!' : 'Save Key'}
+              </button>
+            </div>
+          </div>
+
+          {/* Available PDL Partitions Section */}
           <div>
             <div className="flex items-center justify-between mb-3">
               <div>
                 <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
                   <Globe className="w-4 h-4 text-blue-600" />
-                  CC0 City & Country Datasets on GitHub
+                  People Data Labs (32.3M) Live Stream Partitions
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Select which datasets to stream over HTTPS into your PostgreSQL database
+                  Each partition streams 1,000 companies from Hugging Face Datasets Server API and deduplicates in-place
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={selectAll}
-                  className="px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors"
+                  className="px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors cursor-pointer"
                 >
-                  {selectedIds.length === datasets.length ? 'Deselect All' : 'Select All 8 Datasets'}
+                  {selectedIds.length === datasets.length ? 'Deselect All' : 'Select All Partitions'}
                 </button>
                 <button
                   type="button"
                   onClick={() => fetchAvailable(true)}
                   disabled={loadingList}
-                  className="p-1.5 text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors"
-                  title="Refresh from GitHub API"
+                  className="p-1.5 text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors cursor-pointer"
+                  title="Refresh partition status"
                 >
                   <RefreshCw className={`w-4 h-4 ${loadingList ? 'animate-spin' : ''}`} />
                 </button>
@@ -329,10 +372,9 @@ export const DatasetModal: React.FC<DatasetModalProps> = ({
                       <div className="truncate">
                         <div className="text-sm font-semibold text-slate-900 flex items-center gap-2">
                           <span>{ds.name}</span>
-                          <span className="text-xs font-normal text-slate-500">({ds.country})</span>
                         </div>
                         <div className="text-[11px] text-slate-500 font-mono truncate">
-                          {ds.path} • {(ds.size_bytes / 1024).toFixed(0)} KB
+                          {ds.path}
                         </div>
                       </div>
                     </div>
@@ -341,11 +383,11 @@ export const DatasetModal: React.FC<DatasetModalProps> = ({
                       {ds.is_synced ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-100 text-emerald-800">
                           <CheckCircle2 className="w-3 h-3" />
-                          {formatNumber(ds.loaded_rows)} rows
+                          Streamed
                         </span>
                       ) : (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600">
-                          Not Loaded
+                          Ready
                         </span>
                       )}
                     </div>
@@ -356,8 +398,8 @@ export const DatasetModal: React.FC<DatasetModalProps> = ({
 
             <div className="mt-4 flex items-center justify-between bg-blue-50/70 border border-blue-200 rounded-lg p-3.5">
               <div className="text-xs text-slate-700">
-                <span className="font-semibold text-slate-900">{selectedIds.length} dataset(s)</span>{' '}
-                selected for PostgreSQL upsert (<code className="text-blue-700">ON CONFLICT (registration_number) DO UPDATE</code>).
+                <span className="font-semibold text-slate-900">{selectedIds.length} partition(s)</span>{' '}
+                selected for live streaming &amp; strict domain/brand deduplication.
               </div>
               <button
                 type="button"
@@ -369,12 +411,12 @@ export const DatasetModal: React.FC<DatasetModalProps> = ({
                 {isRunning || triggeringSync ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Syncing to PostgreSQL...
+                    Streaming PDL Partitions...
                   </>
                 ) : (
                   <>
                     <RefreshCw className="w-4 h-4" />
-                    Sync Selected to PostgreSQL
+                    Stream Selected Partitions
                   </>
                 )}
               </button>
@@ -387,10 +429,10 @@ export const DatasetModal: React.FC<DatasetModalProps> = ({
               <div>
                 <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
                   <FileSpreadsheet className="w-4 h-4 text-blue-600" />
-                  Upload People / Directors CSV (<code className="text-xs font-mono">POST /api/contacts/upload</code>)
+                  Upload People / Contacts CSV
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Upload any CSV with columns like <code className="text-slate-700">full_name, job_title, company_registration_number, company_name, email, linkedin_url</code>. Automatically links people to companies in PostgreSQL.
+                  Upload any CSV with columns like <code className="text-slate-700">full_name, job_title, company_name, email, linkedin_url</code> to match contacts directly to PDL companies.
                 </p>
               </div>
               <div>
@@ -438,7 +480,7 @@ export const DatasetModal: React.FC<DatasetModalProps> = ({
         {/* Footer */}
         <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
           <span className="text-xs text-slate-500">
-            Data Source: CompanyData.com Public Datasets (CC0 1.0 Universal)
+            Data Source: People Data Labs Global Company Dataset (32,330,231 records via HuggingFace API)
           </span>
           <button
             type="button"

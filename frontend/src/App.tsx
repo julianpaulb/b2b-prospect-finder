@@ -574,7 +574,7 @@ export function App() {
                 ApexB2B Intelligence
               </h1>
               <span className="text-[10px] text-slate-400 font-mono">
-                PDL 32.3M + GLEIF 2.6M Live Global API • CC0 Registries
+                People Data Labs (32.3M Global Index) • Single Clean Source
               </span>
             </div>
           </div>
@@ -582,12 +582,12 @@ export function App() {
           <div className="hidden md:flex items-center gap-2 pl-4 border-l border-slate-800 text-xs">
             <span
               className="px-2.5 py-1 rounded-full bg-emerald-950/80 border border-emerald-700/50 text-emerald-300 font-mono text-[11px]"
-              title="Connected to People Data Labs (32,330,231 companies via HuggingFace API) + GLEIF Global API (2,600,000+ companies)"
+              title="Connected exclusively to People Data Labs (32,330,231 companies via HuggingFace Datasets Server API) with strict domain + brand deduplication"
             >
-              <strong className="text-emerald-200">34.9M+</strong> Global API Index
+              <strong className="text-emerald-200">32.3M</strong> PDL Global Index
             </span>
             <span className="px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 font-mono text-[11px]">
-              <strong className="text-white">{formatNumber(syncStatus?.total_companies || 0)}</strong> Loaded
+              <strong className="text-white">{formatNumber(syncStatus?.total_companies || 0)}</strong> In RAM
             </span>
             <span className="px-2.5 py-1 rounded-full bg-slate-800 text-blue-300 font-mono text-[11px]">
               <strong className="text-blue-200">{formatNumber(syncStatus?.total_contacts || 0)}</strong> Contacts
@@ -596,7 +596,7 @@ export function App() {
               <span className="px-2.5 py-1 rounded-full bg-blue-600/20 border border-blue-500/40 text-blue-300 text-[11px] flex items-center gap-1.5">
                 <Loader2 className="w-3 h-3 animate-spin" />
                 {liveApiSearching
-                  ? 'Querying Live Global APIs...'
+                  ? 'Searching PDL 32.3M Index...'
                   : `Streaming ${syncStatus?.sync.current_file || 'PDL 32.3M Index'}...`}
               </span>
             )}
@@ -610,7 +610,7 @@ export function App() {
             id="stream-more-pdl-btn"
             onClick={handleStreamMorePdl}
             disabled={streamingMorePdl || syncStatus?.sync.is_running}
-            title="Stream another 1,000 global companies from the 32.3M People Data Labs dataset"
+            title="Stream another 1,000 deduplicated global companies from the 32.3M People Data Labs dataset"
             className="px-2.5 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
           >
             {streamingMorePdl ? (
@@ -628,9 +628,9 @@ export function App() {
             className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
           >
             <Database className="w-3.5 h-3.5 text-blue-400" />
-            <span>Datasets & PDL Stream</span>
+            <span>PDL 32.3M Stream</span>
             <span className="px-1.5 py-0.2 rounded bg-blue-600 text-[10px] font-mono text-white">
-              34.9M
+              32.3M
             </span>
           </button>
 
@@ -671,7 +671,7 @@ export function App() {
           <div className="px-5 py-3 border-b border-slate-200 bg-slate-50/70 flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-semibold text-slate-700">
-                Global Index Matches:{' '}
+                PDL Index Matches:{' '}
                 <span className="font-mono font-bold text-slate-900">
                   {formatNumber(totalCompanies)}
                 </span>{' '}
@@ -681,16 +681,16 @@ export function App() {
               {localStreamedCount > 0 && localStreamedCount !== totalCompanies && (
                 <span
                   className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-mono bg-slate-200/80 text-slate-700"
-                  title="Rows currently buffered in your browser's RAM. Clicking countries, searching, or clicking '+1,000 PDL Companies' streams more live batches on demand."
+                  title="Deduplicated PDL companies currently buffered in your browser's RAM. Searching or clicking '+1,000 PDL Companies' streams more live batches on demand."
                 >
-                  {formatNumber(localStreamedCount)} streamed in RAM
+                  {formatNumber(localStreamedCount)} unique in RAM
                 </span>
               )}
 
               {liveApiSearching && (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
                   <Loader2 className="w-3 h-3 animate-spin" />
-                  Streaming live matches (GLEIF 2.6M + PDL 32.3M)...
+                  Scanning People Data Labs (32.3M) live partitions...
                 </span>
               )}
 
@@ -728,7 +728,6 @@ export function App() {
                 }
                 className="text-xs bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="revenue_desc">Revenue: High to Low</option>
                 <option value="employees_desc">Employees: High to Low</option>
                 <option value="founded_desc">Founded Year: Newest</option>
                 <option value="name_asc">Company Name: A to Z</option>
@@ -741,11 +740,11 @@ export function App() {
             <table className="w-full text-left border-collapse">
               <thead className="bg-slate-50 sticky top-0 z-10 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                 <tr>
-                  <th className="py-3 pl-5 pr-3">Company & Registration #</th>
-                  <th className="py-3 px-3">Industry (SIC)</th>
+                  <th className="py-3 pl-5 pr-3">Company & PDL ID</th>
+                  <th className="py-3 px-3">Industry</th>
                   <th className="py-3 px-3">Location</th>
-                  <th className="py-3 px-3 text-right">Employees</th>
-                  <th className="py-3 px-3 text-right">Annual Revenue (USD)</th>
+                  <th className="py-3 px-3 text-right">Employee Size</th>
+                  <th className="py-3 px-3">Website & LinkedIn</th>
                   <th className="py-3 px-3 text-center">Founded</th>
                   <th className="py-3 pl-3 pr-5 text-right">
                     Target Role Discovery ({effectiveTargetRole})
@@ -757,7 +756,7 @@ export function App() {
                   <tr>
                     <td colSpan={7} className="py-20 text-center text-slate-500">
                       <Loader2 className="w-6 h-6 animate-spin text-blue-600 mx-auto mb-2" />
-                      Streaming from People Data Labs (32.3M) & Global Registries...
+                      Streaming from People Data Labs (32.3M Global Index)...
                     </td>
                   </tr>
                 ) : companies.length === 0 ? (
@@ -766,7 +765,7 @@ export function App() {
                       <div className="max-w-sm mx-auto">
                         <Building2 className="w-8 h-8 text-slate-300 mx-auto mb-2" />
                         <div className="text-sm font-semibold text-slate-800">
-                          No companies match the active criteria
+                          No companies match the active criteria in current buffer
                         </div>
                         <p className="text-xs text-slate-500 mt-1">
                           Click{' '}
@@ -783,9 +782,9 @@ export function App() {
                             onClick={() => setIsDatasetModalOpen(true)}
                             className="text-blue-600 font-semibold hover:underline cursor-pointer"
                           >
-                            Dataset Manager
+                            PDL Stream Manager
                           </button>{' '}
-                          to stream more global batches.
+                          to pull more partitions from the 32.3M dataset.
                         </p>
                       </div>
                     </td>
@@ -805,7 +804,7 @@ export function App() {
                             : 'hover:bg-slate-50/90'
                         }`}
                       >
-                        {/* 1. Company Name, Trade Name, Reg # */}
+                        {/* 1. Company Name & PDL ID */}
                         <td className="py-3 pl-5 pr-3 max-w-xs">
                           <div className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors truncate">
                             {comp.company_name}
@@ -814,35 +813,18 @@ export function App() {
                             <span className="font-mono text-slate-400">
                               #{comp.registration_number}
                             </span>
-                            {comp.website ? (
-                              <span className="truncate text-blue-600 font-mono">
-                                • {comp.website}
-                              </span>
-                            ) : (
-                              comp.trade_name &&
-                              comp.trade_name !== comp.company_name && (
-                                <span className="truncate text-slate-500">
-                                  • DBA {comp.trade_name}
-                                </span>
-                              )
-                            )}
                           </div>
                         </td>
 
-                        {/* 2. Industry (SIC) */}
-                        <td className="py-3 px-3 max-w-[230px]">
-                          {comp.sic_code ? (
-                            <div className="flex items-center gap-1.5">
-                              <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-[10px] font-semibold shrink-0">
-                                {comp.sic_code}
-                              </span>
-                              <span
-                                className="text-slate-700 truncate"
-                                title={comp.industry_description || ''}
-                              >
-                                {comp.industry_description || 'Business Services'}
-                              </span>
-                            </div>
+                        {/* 2. Industry */}
+                        <td className="py-3 px-3 max-w-[220px]">
+                          {comp.industry_description || comp.sic_code ? (
+                            <span
+                              className="inline-block px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-medium truncate max-w-full"
+                              title={comp.industry_description || comp.sic_code || ''}
+                            >
+                              {comp.industry_description || comp.sic_code}
+                            </span>
                           ) : (
                             <span className="text-slate-400">—</span>
                           )}
@@ -856,33 +838,62 @@ export function App() {
                               {[comp.city, comp.country].filter(Boolean).join(', ')}
                             </span>
                           </div>
-                          {comp.street && (
+                          {comp.region && comp.region !== comp.city && (
                             <div className="text-[11px] text-slate-400 truncate max-w-[180px] pl-4">
-                              {comp.street}
+                              {comp.region}
                             </div>
                           )}
                         </td>
 
-                        {/* 4. Employees */}
+                        {/* 4. Employee Size (PDL Bracket) */}
                         <td className="py-3 px-3 text-right font-mono text-slate-800 whitespace-nowrap">
                           {comp.employee_range ? (
-                            <span title={comp.employee_range}>
+                            <span
+                              className="px-2 py-0.5 rounded bg-blue-50/80 text-blue-800 border border-blue-200/60 text-[11px] font-semibold"
+                              title={comp.employee_range}
+                            >
                               {comp.employee_range.replace(' (PDL Range)', '')}
                             </span>
-                          ) : (
+                          ) : comp.employees_total ? (
                             formatNumber(comp.employees_total)
+                          ) : (
+                            <span className="text-slate-400">—</span>
                           )}
                         </td>
 
-                        {/* 5. Annual Revenue (USD) */}
+                        {/* 5. Website & LinkedIn (Direct Links) */}
                         <td
-                          className={`py-3 px-3 text-right font-mono whitespace-nowrap ${
-                            comp.revenue_usd
-                              ? 'font-semibold text-emerald-700'
-                              : 'text-slate-400'
-                          }`}
+                          className="py-3 px-3 whitespace-nowrap"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          {formatCurrencyUSD(comp.revenue_usd)}
+                          <div className="flex items-center gap-2">
+                            {comp.website ? (
+                              <a
+                                href={`https://${comp.website.replace(/^https?:\/\//, '')}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 font-mono text-[11px] transition-colors max-w-[150px] truncate"
+                                title={`Visit ${comp.website}`}
+                              >
+                                <span className="truncate">{comp.website}</span>
+                                <ExternalLink className="w-2.5 h-2.5 shrink-0" />
+                              </a>
+                            ) : (
+                              <span className="text-slate-400 text-[11px]">No domain</span>
+                            )}
+                            {comp.linkedin_company_url && (
+                              <a
+                                href={comp.linkedin_company_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-[10px] border border-indigo-200/70 transition-colors shrink-0"
+                                title={`Open LinkedIn Company Profile: ${comp.linkedin_company_url}`}
+                              >
+                                <span>in</span>
+                                <ExternalLink className="w-2.5 h-2.5" />
+                              </a>
+                            )}
+                          </div>
                         </td>
 
                         {/* 6. Founded */}

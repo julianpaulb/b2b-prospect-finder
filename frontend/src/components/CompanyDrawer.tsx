@@ -349,11 +349,10 @@ export const CompanyDrawer: React.FC<CompanyDrawerProps> = ({
 
               <div className="p-3 flex items-start justify-between gap-4">
                 <span className="text-slate-500 flex items-center gap-1.5 shrink-0">
-                  <Briefcase className="w-3.5 h-3.5" /> Primary Industry (SIC)
+                  <Briefcase className="w-3.5 h-3.5" /> Primary Industry
                 </span>
                 <span className="text-slate-900 font-medium text-right">
-                  {company.sic_code ? `SIC ${company.sic_code} — ` : ''}
-                  {company.industry_description || 'Unclassified'}
+                  {company.industry_description || company.sic_code || 'Unclassified'}
                 </span>
               </div>
 

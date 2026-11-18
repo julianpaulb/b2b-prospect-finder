@@ -26,16 +26,11 @@ const EMPLOYEE_BRACKETS = [
   { id: '1-10', label: '1 - 10' },
   { id: '11-50', label: '11 - 50' },
   { id: '51-200', label: '51 - 200' },
-  { id: '201-1000', label: '201 - 1,000' },
-  { id: '1000+', label: '1,000+' },
-];
-
-const REVENUE_PRESETS = [
-  { label: 'Any Revenue', min: '', max: '' },
-  { label: '$1M - $10M', min: '1000000', max: '10000000' },
-  { label: '$10M - $100M', min: '10000000', max: '100000000' },
-  { label: '$100M - $1B', min: '100000000', max: '1000000000' },
-  { label: '$1B+', min: '1000000000', max: '' },
+  { id: '201-500', label: '201 - 500' },
+  { id: '501-1000', label: '501 - 1,000' },
+  { id: '1001-5000', label: '1,001 - 5,000' },
+  { id: '5001-10000', label: '5,001 - 10,000' },
+  { id: '10001+', label: '10,001+' },
 ];
 
 const QUICK_JOB_TITLES = [
@@ -330,12 +325,12 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
           </div>
         </div>
 
-        {/* 5. Industry & SIC Code Filter */}
+        {/* 5. Industry Filter (People Data Labs Taxonomy) */}
         <div className="p-4 space-y-2.5">
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-700">
               <Layers className="w-3.5 h-3.5 text-blue-600" />
-              Industry & SIC Code
+              Industry ({facets.industries.length})
             </span>
             {(filters.sicCodes.length > 0 || filters.industryKeyword) && (
               <button
@@ -366,12 +361,12 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
                 page: 1,
               }));
             }}
-            placeholder="Keyword or SIC (e.g. 6021, Software, Bank)..."
+            placeholder="Filter industry (e.g. Software, Financial, Retail)..."
             className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
 
-          <div className="max-h-40 overflow-y-auto custom-scrollbar space-y-1 pr-1">
-            {filteredIndustries.slice(0, 35).map((ind) => {
+          <div className="max-h-44 overflow-y-auto custom-scrollbar space-y-1 pr-1">
+            {filteredIndustries.slice(0, 40).map((ind) => {
               const checked = filters.sicCodes.includes(ind.code);
               return (
                 <div
@@ -393,15 +388,12 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
                     ) : (
                       <Square className="w-3.5 h-3.5 text-slate-300 shrink-0" />
                     )}
-                    <span className="font-mono text-[11px] text-blue-700 shrink-0">
-                      {ind.code}
-                    </span>
                     <span className="truncate text-[11px]" title={ind.description}>
                       {ind.description}
                     </span>
                   </div>
                   <span className="font-mono text-[10px] text-slate-400 shrink-0">
-                    {ind.count}
+                    {formatNumber(ind.count)}
                   </span>
                 </div>
               );
@@ -409,13 +401,22 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
           </div>
         </div>
 
-        {/* 6. Company Size (Employee Count Brackets) */}
+        {/* 6. Company Size (PDL Employee Count Brackets) */}
         <div className="p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-700">
               <Users className="w-3.5 h-3.5 text-blue-600" />
-              Employees Headcount
+              Employees (PDL Size Bracket)
             </span>
+            {filters.employeeBrackets.length > 0 && (
+              <button
+                type="button"
+                onClick={() => onChange((prev) => ({ ...prev, employeeBrackets: [], page: 1 }))}
+                className="text-[11px] text-blue-600 hover:underline cursor-pointer"
+              >
+                Reset
+              </button>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-1.5">
             {EMPLOYEE_BRACKETS.map((b) => {
@@ -441,71 +442,6 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
                 </button>
               );
             })}
-          </div>
-        </div>
-
-        {/* 7. Annual USD Revenue Range */}
-        <div className="p-4 space-y-2.5">
-          <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-700">
-              <DollarSign className="w-3.5 h-3.5 text-blue-600" />
-              Annual Revenue (USD)
-            </span>
-          </div>
-
-          <div className="flex flex-wrap gap-1">
-            {REVENUE_PRESETS.map((preset) => {
-              const isSelected =
-                filters.revenueMin === preset.min && filters.revenueMax === preset.max;
-              return (
-                <button
-                  key={preset.label}
-                  type="button"
-                  onClick={() =>
-                    onChange((prev) => ({
-                      ...prev,
-                      revenueMin: preset.min,
-                      revenueMax: preset.max,
-                      page: 1,
-                    }))
-                  }
-                  className={`px-2 py-1 rounded text-[11px] font-medium border transition-colors cursor-pointer ${
-                    isSelected
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
-                  }`}
-                >
-                  {preset.label}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 pt-1">
-            <div>
-              <label className="block text-[10px] text-slate-400 mb-0.5">Min USD ($)</label>
-              <input
-                type="number"
-                value={filters.revenueMin}
-                onChange={(e) =>
-                  onChange((prev) => ({ ...prev, revenueMin: e.target.value, page: 1 }))
-                }
-                placeholder="e.g. 5000000"
-                className="w-full px-2 py-1 text-xs font-mono bg-white border border-slate-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] text-slate-400 mb-0.5">Max USD ($)</label>
-              <input
-                type="number"
-                value={filters.revenueMax}
-                onChange={(e) =>
-                  onChange((prev) => ({ ...prev, revenueMax: e.target.value, page: 1 }))
-                }
-                placeholder="No limit"
-                className="w-full px-2 py-1 text-xs font-mono bg-white border border-slate-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
           </div>
         </div>
       </div>
