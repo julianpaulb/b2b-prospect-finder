@@ -213,6 +213,12 @@ export function App() {
     try {
       if (isStaticCloudMode) {
         await browserDb.ensureInitialized();
+        setLiveApiSearching(true);
+        try {
+          await browserDb.liveSearchExternalApis(filters);
+        } finally {
+          setLiveApiSearching(false);
+        }
         const data = browserDb.searchCompanies(filters);
         setCompanies(data.items);
         setTotalCompanies(data.total);
@@ -221,35 +227,6 @@ export function App() {
         setMatchingContactsTotal(data.matching_contacts_total);
         setSyncStatus(browserDb.getStatus());
         setFacets(browserDb.getFacets(filters.countries));
-
-        const hasActiveFilter =
-          filters.page > 1 ||
-          Boolean(filters.q.trim()) ||
-          filters.countries.length > 0 ||
-          filters.cities.length > 0 ||
-          filters.sicCodes.length > 0 ||
-          Boolean(filters.industryKeyword.trim()) ||
-          filters.employeeBrackets.length > 0;
-        const needsMoreMatches = hasActiveFilter && data.items.length < 25;
-
-        if (needsMoreMatches || filters.q.trim() || filters.countries.length > 0 || filters.cities.length > 0) {
-          setLiveApiSearching(true);
-          browserDb
-            .liveSearchExternalApis(filters, needsMoreMatches)
-            .then((added) => {
-              if (added > 0) {
-                const refreshed = browserDb.searchCompanies(filters);
-                setCompanies(refreshed.items);
-                setTotalCompanies(refreshed.total);
-                setLocalStreamedCount(refreshed.local_streamed_total ?? refreshed.total);
-                setTotalPages(refreshed.total_pages);
-                setMatchingContactsTotal(refreshed.matching_contacts_total);
-                setSyncStatus(browserDb.getStatus());
-                setFacets(browserDb.getFacets(filters.countries));
-              }
-            })
-            .finally(() => setLiveApiSearching(false));
-        }
         return;
       }
 
@@ -289,6 +266,12 @@ export function App() {
       throw new Error('Static');
     } catch {
       await browserDb.ensureInitialized();
+      setLiveApiSearching(true);
+      try {
+        await browserDb.liveSearchExternalApis(filters);
+      } finally {
+        setLiveApiSearching(false);
+      }
       const data = browserDb.searchCompanies(filters);
       setCompanies(data.items);
       setTotalCompanies(data.total);
@@ -306,7 +289,8 @@ export function App() {
     if (streamingMorePdl) return;
     setStreamingMorePdl(true);
     try {
-      await browserDb.streamMorePdlCompanies(1000);
+      browserDb.clearCache();
+      await browserDb.liveSearchExternalApis(filters, true);
       setSyncStatus(browserDb.getStatus());
       setFacets(browserDb.getFacets(filters.countries));
       const refreshed = browserDb.searchCompanies(filters);

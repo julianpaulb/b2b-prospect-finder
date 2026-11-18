@@ -151,18 +151,56 @@ function b64UrlEncodeStr(str: string): string {
   return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
+const UPPER_ACRONYMS = new Set([
+  'adp',
+  'ibm',
+  'sap',
+  'ups',
+  'ey',
+  'hp',
+  'bmw',
+  'klm',
+  'dhl',
+  'hsbc',
+  'kpmg',
+  'at&t',
+  'uk',
+  'usa',
+  'us',
+  'uae',
+  'eu',
+  'apac',
+  'emea',
+  'llc',
+  'llp',
+  'plc',
+  'bv',
+  'nv',
+  'ag',
+  'sa',
+  'ab',
+  'gmbh',
+]);
+
 function toTitleCase(str: string | null | undefined): string {
   if (!str) return '';
   return str
     .toLowerCase()
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+    .split(/\s+/)
+    .map((word) => {
+      const clean = word.replace(/[^a-z0-9&]/g, '');
+      if (UPPER_ACRONYMS.has(clean)) return word.toUpperCase();
+      if (clean === 'pwc') return 'PwC';
+      return word.replace(/\b\w/g, (c) => c.toUpperCase());
+    })
+    .join(' ');
 }
 
 function normalizeBrandName(name: string): string {
   return name
     .toLowerCase()
     .replace(
-      /\b(inc|incorporated|ltd|limited|llc|llp|gmbh|co|corp|corporation|plc|sa|srl|bv|nv|ag|ab|as|oy|pty|pvt|sp\s*z\s*o\s*o|s\.a\.|s\.r\.l\.)\b/g,
+      /\b(the|inc|incorporated|ltd|limited|llc|llp|gmbh|co|corp|corporation|company|plc|sa|srl|bv|nv|ag|ab|as|oy|pty|pvt|sp\s*z\s*o\s*o|s\.a\.|s\.r\.l\.)\b/g,
       ''
     )
     .replace(/[^a-z0-9]/g, '')
@@ -347,9 +385,25 @@ class BrowserDatabaseEngine {
   }
 
   async ensureInitialized(): Promise<void> {
+    // Purge any legacy localStorage caches from earlier versions so stale data never persists
+    try {
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('apex_b2b_engine_cache')) {
+          localStorage.removeItem(k);
+        }
+      }
+    } catch {
+      // Ignore storage errors
+    }
     if (this.currentCities.length === 0) {
       this.fetchCitiesForCountries([]).catch(() => {});
     }
+  }
+
+  clearCache(): void {
+    this.queryCache.clear();
+    this.citiesCache.clear();
   }
 
   async discoverFromGitHubApi(_force = false): Promise<DatasetItem[]> {
@@ -483,7 +537,7 @@ class BrowserDatabaseEngine {
     return Math.max(localMatchedCount, baseTotal);
   }
 
-  async liveSearchExternalApis(filters: SearchFilters, _needsMore = false): Promise<number> {
+  async liveSearchExternalApis(filters: SearchFilters, forceRefresh = false): Promise<number> {
     const cacheKey = JSON.stringify({
       q: filters.q.trim().toLowerCase(),
       countries: [...filters.countries].sort(),
@@ -495,7 +549,7 @@ class BrowserDatabaseEngine {
       page: filters.page,
     });
 
-    if (this.queryCache.has(cacheKey)) {
+    if (!forceRefresh && this.queryCache.has(cacheKey)) {
       const cached = this.queryCache.get(cacheKey)!;
       this.currentItems = cached.items;
       this.currentTotal = cached.total;
@@ -509,7 +563,7 @@ class BrowserDatabaseEngine {
 
     try {
       const qClean = filters.q.trim().toLowerCase();
-      const whereClauses: string[] = ['1=1'];
+      const whereClauses: string[] = ['country IS NOT NULL', 'city IS NOT NULL'];
       const params: Array<Record<string, any>> = [];
 
       if (filters.countries.length > 0) {
@@ -557,8 +611,12 @@ class BrowserDatabaseEngine {
         });
       }
 
+      const orderParts: string[] = [];
+
       if (qClean) {
-        whereClauses.push('(name_lower LIKE @q_prefix OR website LIKE @q_prefix)');
+        whereClauses.push(
+          '(name_lower LIKE @q_prefix OR website LIKE @q_prefix OR name_lower LIKE @q_the_prefix)'
+        );
         params.push(
           {
             name: 'q_exact',
@@ -569,25 +627,53 @@ class BrowserDatabaseEngine {
             name: 'q_prefix',
             parameterType: { type: 'STRING' },
             parameterValue: { value: `${qClean}%` },
+          },
+          {
+            name: 'q_the_prefix',
+            parameterType: { type: 'STRING' },
+            parameterValue: { value: `the ${qClean}%` },
           }
         );
-      }
 
-      const orderParts: string[] = [];
-      if (qClean) {
         orderParts.push(
-          "CASE WHEN name_lower = @q_exact AND website IS NOT NULL THEN 0 WHEN name_lower = @q_exact OR website = CONCAT(@q_exact, '.com') THEN 1 ELSE 2 END ASC"
+          `CASE
+            WHEN (name_lower = @q_exact OR name_lower = CONCAT('the ', @q_exact) OR name_lower = CONCAT(@q_exact, '.com'))
+                 AND (website = CONCAT(@q_exact, '.com') OR employees_num >= 1000) THEN 0
+            WHEN (name_lower LIKE @q_prefix OR name_lower LIKE @q_the_prefix) AND employees_num >= 1000 THEN 1
+            WHEN name_lower LIKE @q_prefix OR name_lower LIKE @q_the_prefix THEN 2
+            ELSE 3
+          END ASC`
+        );
+      } else {
+        whereClauses.push(
+          'website IS NOT NULL',
+          'founded IS NOT NULL',
+          'industry IS NOT NULL',
+          "REGEXP_CONTAINS(website, r'^[a-z0-9-]+\\.[a-z]{2,}$')"
         );
       }
 
       if (filters.sortBy === 'founded_desc') {
         orderParts.push('founded DESC NULLS LAST');
+        orderParts.push('employees_num DESC NULLS LAST');
       } else if (filters.sortBy === 'name_asc') {
         orderParts.push('name ASC');
+        orderParts.push('employees_num DESC NULLS LAST');
       } else {
         orderParts.push('employees_num DESC NULLS LAST');
       }
-      orderParts.push('CASE WHEN website IS NOT NULL THEN 0 ELSE 1 END ASC');
+
+      if (qClean) {
+        orderParts.push(
+          'CASE WHEN website IS NOT NULL AND founded IS NOT NULL THEN 0 WHEN website IS NOT NULL THEN 1 ELSE 2 END ASC'
+        );
+        orderParts.push('founded ASC NULLS LAST');
+      } else {
+        orderParts.push(
+          "CASE WHEN ENDS_WITH(website, '.com') AND LENGTH(website) <= 12 THEN 0 ELSE 1 END ASC"
+        );
+        orderParts.push('LENGTH(website) ASC NULLS LAST');
+      }
       orderParts.push('name ASC');
 
       const offset = (filters.page - 1) * 50;
