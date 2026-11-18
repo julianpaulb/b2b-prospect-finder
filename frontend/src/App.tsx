@@ -222,16 +222,20 @@ export function App() {
         setSyncStatus(browserDb.getStatus());
         setFacets(browserDb.getFacets(filters.countries));
 
-        const needsMoreForPage = filters.page > 1 && data.items.length < 25;
-        if (
-          needsMoreForPage ||
-          filters.q.trim() ||
+        const hasActiveFilter =
+          filters.page > 1 ||
+          Boolean(filters.q.trim()) ||
           filters.countries.length > 0 ||
-          filters.cities.length > 0
-        ) {
+          filters.cities.length > 0 ||
+          filters.sicCodes.length > 0 ||
+          Boolean(filters.industryKeyword.trim()) ||
+          filters.employeeBrackets.length > 0;
+        const needsMoreMatches = hasActiveFilter && data.items.length < 25;
+
+        if (needsMoreMatches || filters.q.trim() || filters.countries.length > 0 || filters.cities.length > 0) {
           setLiveApiSearching(true);
           browserDb
-            .liveSearchExternalApis(filters, needsMoreForPage)
+            .liveSearchExternalApis(filters, needsMoreMatches)
             .then((added) => {
               if (added > 0) {
                 const refreshed = browserDb.searchCompanies(filters);
@@ -288,8 +292,11 @@ export function App() {
       const data = browserDb.searchCompanies(filters);
       setCompanies(data.items);
       setTotalCompanies(data.total);
+      setLocalStreamedCount(data.local_streamed_total ?? data.total);
       setTotalPages(data.total_pages);
       setMatchingContactsTotal(data.matching_contacts_total);
+      setSyncStatus(browserDb.getStatus());
+      setFacets(browserDb.getFacets(filters.countries));
     } finally {
       setLoadingCompanies(false);
     }
@@ -305,11 +312,28 @@ export function App() {
       const refreshed = browserDb.searchCompanies(filters);
       setCompanies(refreshed.items);
       setTotalCompanies(refreshed.total);
+      setLocalStreamedCount(refreshed.local_streamed_total ?? refreshed.total);
       setTotalPages(refreshed.total_pages);
     } finally {
       setStreamingMorePdl(false);
     }
   };
+
+  // Subscribe to real-time progressive streaming updates from browserDb
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const unsubscribe = browserDb.subscribe(() => {
+      const data = browserDb.searchCompanies(filters);
+      setCompanies(data.items);
+      setTotalCompanies(data.total);
+      setLocalStreamedCount(data.local_streamed_total ?? data.total);
+      setTotalPages(data.total_pages);
+      setMatchingContactsTotal(data.matching_contacts_total);
+      setSyncStatus(browserDb.getStatus());
+      setFacets(browserDb.getFacets(filters.countries));
+    });
+    return unsubscribe;
+  }, [isAuthenticated, filters]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -322,21 +346,9 @@ export function App() {
     if (!isAuthenticated) return;
     const timer = setTimeout(() => {
       fetchCompanies();
-    }, 150);
+    }, 100);
     return () => clearTimeout(timer);
   }, [isAuthenticated, fetchCompanies]);
-
-  // Poll sync status while a background sync is running
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    if (!syncStatus?.sync.is_running) return;
-    const interval = setInterval(() => {
-      fetchSyncStatus();
-      fetchFacets();
-      fetchCompanies();
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [isAuthenticated, syncStatus?.sync.is_running, fetchSyncStatus, fetchFacets, fetchCompanies]);
 
   const handleExportCsv = () => {
     if (isStaticCloudMode) {

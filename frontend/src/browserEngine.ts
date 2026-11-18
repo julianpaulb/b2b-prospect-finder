@@ -313,17 +313,35 @@ class BrowserDatabaseEngine {
   private discoveredDatasets: DatasetItem[] = [...PDL_DATASETS];
   private nextCompanyId = 1;
   private nextContactId = 1;
-  private initialized = false;
+  private initPromise: Promise<void> | null = null;
+  private listeners: Set<() => void> = new Set();
   private isSyncing = false;
   private currentFile: string | null = null;
   private filesCompleted = 0;
   private filesTotal = 0;
   private rowsProcessed = 0;
   private logs: string[] = [];
-  private pdlNextOffset = 3000;
+  private pdlNextOffset = 0;
   private pdlQueryCache: Set<string> = new Set();
   private globalCountryStats: Map<string, number> = new Map(Object.entries(PDL_GLOBAL_COUNTRY_COUNTS));
   private globalIndustryStats: Map<string, number> = new Map(Object.entries(PDL_GLOBAL_INDUSTRY_COUNTS));
+
+  subscribe(listener: () => void): () => void {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  private notify() {
+    for (const listener of this.listeners) {
+      try {
+        listener();
+      } catch {
+        // Ignore listener errors
+      }
+    }
+  }
 
   private log(msg: string) {
     const ts = new Date().toISOString().slice(11, 19);
@@ -372,6 +390,7 @@ class BrowserDatabaseEngine {
         }
       }
       this.log(`Loaded exact PDL global statistics (32,330,231 companies across 249 countries).`);
+      this.notify();
     } catch {
       // Keep pre-seeded PDL_GLOBAL_COUNTRY_COUNTS
     }
@@ -382,11 +401,54 @@ class BrowserDatabaseEngine {
   }
 
   async ensureInitialized(): Promise<void> {
-    if (this.initialized) return;
-    this.initialized = true;
-    this.fetchGlobalPdlStatistics();
-    // Automatically stream the first 3,000 PDL companies (Partitions #1, #2, #3)
-    await this.syncDatasets(['pdl-batch-1', 'pdl-batch-2', 'pdl-batch-3']);
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+
+    this.initPromise = (async () => {
+      this.fetchGlobalPdlStatistics();
+      this.isSyncing = true;
+      this.currentFile = 'PDL 32.3M Global Index (Initial Stream)';
+      this.pdlNextOffset = 1000;
+      this.notify();
+
+      try {
+        // 1. Stream the first 1,000 PDL companies (Partition #1) immediately so UI renders in <1 second
+        await this.streamPdlBatchRange(0, 1000, 'pdl-batch-1');
+        this.seedExecutiveRoles();
+      } finally {
+        this.isSyncing = false;
+        this.currentFile = null;
+        this.notify();
+      }
+
+      // 2. Automatically continue streaming Partitions #2, #3, #4, #5 (4,000 more companies) in the background
+      //    and notify the UI after each partition so the table and sidebar cities populate automatically!
+      this.autoStreamBackgroundPartitions(['pdl-batch-2', 'pdl-batch-3', 'pdl-batch-4', 'pdl-batch-5']);
+    })();
+
+    return this.initPromise;
+  }
+
+  private async autoStreamBackgroundPartitions(datasetIds: string[]): Promise<void> {
+    for (const dsId of datasetIds) {
+      const batchNum = Number(dsId.replace('pdl-batch-', '')) || 2;
+      const startOffset = (batchNum - 1) * 1000;
+      if (startOffset + 1000 > this.pdlNextOffset) {
+        this.pdlNextOffset = startOffset + 1000;
+      }
+      this.isSyncing = true;
+      this.currentFile = `PDL Partition #${batchNum} (${startOffset}..${startOffset + 1000})`;
+      this.notify();
+      try {
+        await this.streamPdlBatchRange(startOffset, 1000, dsId);
+        this.seedExecutiveRoles();
+      } finally {
+        this.isSyncing = false;
+        this.currentFile = null;
+        this.notify();
+      }
+    }
   }
 
   getAvailableDatasets(): DatasetItem[] {
@@ -540,9 +602,9 @@ class BrowserDatabaseEngine {
     let count = 0;
     const nowIso = new Date().toISOString();
 
-    // Fetch 10 batches (1,000 rows) in parallel for sub-second streaming
-    for (let i = 0; i < offsets.length; i += 10) {
-      const slice = offsets.slice(i, i + 10);
+    // Fetch 5 batches (500 rows) in parallel and notify UI progressively
+    for (let i = 0; i < offsets.length; i += 5) {
+      const slice = offsets.slice(i, i + 5);
       const batchPromises = slice.map(async (offset) => {
         const url = `${HF_ROWS_URL}?dataset=${PDL_HF_DATASET}&config=default&split=train&offset=${offset}&length=100`;
         try {
@@ -556,13 +618,18 @@ class BrowserDatabaseEngine {
       });
 
       const results = await Promise.all(batchPromises);
+      let chunkAdded = 0;
       for (const rows of results) {
         for (const item of rows) {
           if (item && item.row && this.upsertPdlRow(item.row, sourceId, nowIso)) {
             count++;
+            chunkAdded++;
             this.rowsProcessed++;
           }
         }
+      }
+      if (chunkAdded > 0) {
+        this.notify();
       }
     }
 
@@ -572,24 +639,26 @@ class BrowserDatabaseEngine {
   }
 
   async streamMorePdlCompanies(batchSize = 1000): Promise<number> {
-    if (this.isSyncing) return 0;
-    this.isSyncing = true;
     const offset = this.pdlNextOffset;
     this.pdlNextOffset += batchSize;
+    this.isSyncing = true;
     this.currentFile = `PDL 32.3M Index [${offset}..${offset + batchSize}]`;
     this.log(`Streaming ${batchSize} companies from People Data Labs (offset ${offset}..${offset + batchSize})...`);
+    this.notify();
 
     try {
       const added = await this.streamPdlBatchRange(offset, batchSize, 'pdl-live-stream');
+      this.seedExecutiveRoles();
       this.log(`Streamed ${added} deduplicated PDL companies (offset ${offset}..${offset + batchSize}).`);
       return added;
     } finally {
       this.isSyncing = false;
       this.currentFile = null;
+      this.notify();
     }
   }
 
-  async liveSearchExternalApis(filters: SearchFilters, forceNextPage = false): Promise<number> {
+  async liveSearchExternalApis(filters: SearchFilters, needsMoreMatches = false): Promise<number> {
     const q = filters.q.trim();
     const countries = filters.countries;
     const cities = filters.cities;
@@ -651,6 +720,7 @@ class BrowserDatabaseEngine {
                 addedTotal++;
               }
             }
+            if (addedTotal > 0) this.notify();
           }
         } catch {
           // Ignore errors
@@ -658,12 +728,18 @@ class BrowserDatabaseEngine {
       }
     }
 
-    // 2. When paginating or when local matches for a selected country are under 50, stream another 1,000 PDL rows from Hugging Face
-    if (forceNextPage) {
-      const offset = this.pdlNextOffset;
-      this.pdlNextOffset += 1000;
-      const added = await this.streamPdlBatchRange(offset, 1000, 'pdl-live-stream');
-      addedTotal += added;
+    // 2. Automatically stream more PDL batches whenever the current page/filter has fewer than 50 matches
+    if (needsMoreMatches) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const offset = this.pdlNextOffset;
+        this.pdlNextOffset += 1000;
+        const added = await this.streamPdlBatchRange(offset, 1000, 'pdl-live-stream');
+        addedTotal += added;
+        const currentMatches = this.searchCompanies(filters);
+        if (currentMatches.items.length >= 25) {
+          break;
+        }
+      }
     }
 
     return addedTotal;
